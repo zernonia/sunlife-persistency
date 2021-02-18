@@ -1,0 +1,62 @@
+#app {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #d8f3ff;
+}
+
+h1,h2,h3,h4,h5,h6 {
+  margin: 0.75rem 0rem
+}
+
+.container {
+  background: white; 
+  border-radius: 5px; 
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
+  padding: 1rem;
+}
+
+.container > h1, .container > h2 {
+  color: #606266
+}
+
+.main-container {
+  max-width: 1400px;
+  width: 100%;
+  height: fit-content;
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #f1f1f1; 
+}
+ 
+/* Handle */
+::-webkit-scrollbar-thumb {
+  border-radius: 5px;
+  background: rgb(112, 214, 255); 
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(112, 174, 255); 
+}

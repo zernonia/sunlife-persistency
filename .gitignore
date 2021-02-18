@@ -1,0 +1,4 @@
+node_modules
+server/node_modules
+server/db/persistency.db
+client/node_modules
