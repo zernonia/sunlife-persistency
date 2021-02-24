@@ -2,28 +2,31 @@
   <div>
     <h1>Persistency Calculator</h1>
 
-    <new-mob-target @highlight="highlightData" />
+    <el-space wrap>
+      <el-select v-model="storeFilter.selectedStaffDesignation" placeholder="Select Staff Designation" @change="updateStaffDesignation" >
+        <el-option v-for="item in filterStaffDesignation" :key="item.value" :label="item.label" :value="item.value" />
+      </el-select>
+      <el-select v-model="storeFilter.selectedProduct" placeholder="Select Products">
+        <el-option v-for="item in filterProduct" :key="item.value" :label="item.label" :value="item.value" />
+      </el-select>
+      <el-select v-model="storeFilter.selectedLIMRA" placeholder="Select LIMRA">
+        <el-option v-for="item in filterLIMRA" :key="item.value" :label="item.label" :value="item.value" />
+      </el-select>
+      <el-button type="primary" >Search</el-button>
+    </el-space>
 
     <el-divider></el-divider>
 
-    <el-space wrap>
-      <el-cascader v-model="storeFilter.selectedStaffDesignation" :options="filterStaffDesignation" placeholder="All Staff" />
-      <el-cascader v-model="storeFilter.selectedProduct" :options="filterProduct" placeholder="All Products" />
-      <el-cascader v-model="storeFilter.selectedLIMRA" :options="filterLIMRA" placeholder="LIMRA" />
-      <el-cascader v-model="storeFilter.selectedPaymentMethod" :options="filterPaymentMethod" :props="props" collapse-tags placeholder="All Payment Method" />
-      <el-switch v-model="movingAverageToggle" />
-      <el-checkbox v-model="checkedNumber">Number</el-checkbox>
-      <el-checkbox v-model="checkedPercentage">Percentage</el-checkbox>
-    </el-space>
+    <new-mob-target @highlight="highlightData" />
 
-    <v-table ref="refTable" :data="storeData.rawData" style="margin-top: 1.5rem;"></v-table>
+    <v-table ref="refTable" :data="storeData.rawData" style="margin-top: 1rem;"></v-table>
 
     <transfer style="margin-top: 1.5rem;" />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted, ComponentPublicInstance } from 'vue'
+import { defineComponent, ref, computed, ComponentPublicInstance } from 'vue'
 import Table from '../components/Table.vue'
 import newMobTarget from '../components/newMOBTarget.vue'
 import Transfer from '../components/Transfer.vue'
@@ -49,19 +52,21 @@ export default defineComponent({
     const checkedPercentage = ref(true)
     const movingAverageToggle = ref(false)
 
+    const updateStaffDesignation = () => {
+      storeFilter.selectedProduct = ''
+    }
 
     const filterProduct = computed(() => {
-      if(storeFilter.selectedStaffDesignation == []) {
+      if(storeFilter.selectedStaffDesignation == '') {
         return product.product 
       } else {
         return product.product.filter((item: any) => {
-          return item.group.find((group: any) => group == storeFilter.selectedStaffDesignation[0]) != undefined
+          return item.group.find((group: any) => group == storeFilter.selectedStaffDesignation) != undefined
         })
       }
     })
-    const filterPaymentMethod = product.paymentMethod
-    const filterStaffDesignation = product.staffDesignation
     const filterLIMRA = product.periodLIMRA
+    const filterStaffDesignation = product.staffDesignation
 
     // fetch Data
     const fetchAll = () => {
@@ -75,9 +80,6 @@ export default defineComponent({
 
     // Call Data
     fetchAll()
-
-    
-
       
     const highlightData = () => {
       if(refTable.value != null) {
@@ -88,11 +90,11 @@ export default defineComponent({
     return {
       data,
       filterProduct,
-      filterPaymentMethod,
-      filterStaffDesignation,
       filterLIMRA,
+      filterStaffDesignation,
       storeData,
       storeFilter,
+      updateStaffDesignation,
       props,
       tableLoading,
       checkedNumber,

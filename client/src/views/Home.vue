@@ -9,6 +9,19 @@
       <card :title="'Target LIMRA 2022'" :data="54.1" />
     </div>
 
+    <h2>In-Branch</h2>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 20px; margin-bottom: 20px;">
+      <card-dashboard :title="'Sun Link'" ></card-dashboard>
+      <card-dashboard :title="'Sun Link Istismar'"></card-dashboard>
+      <card-dashboard :title="'Sun Wealth'"></card-dashboard>
+      <card-dashboard :title="'Sun SaveAssured'"></card-dashboard>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); column-gap: 20px; margin-bottom: 20px;">
+      <card-dashboard :title="'Sun Series'" ></card-dashboard>
+      <card-dashboard :title="'Pay As You Go'"></card-dashboard>
+      <card-dashboard :title="'In Branch OTH'"></card-dashboard>
+    </div>
+    
     <pivot-table />
   </div>
 </template>
@@ -17,12 +30,14 @@
 import { defineComponent } from 'vue';
 import pivotTable from '../components/PivotTable.vue'
 import Card from '../components/Card.vue'
+import CardDashboard from '../components/CardDashboard.vue'
 
 export default defineComponent({
   name: 'Home',
   components: {
     pivotTable,
-    Card
+    Card,
+    CardDashboard
   },
 });
 </script>

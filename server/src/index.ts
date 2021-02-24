@@ -78,6 +78,17 @@ function multiply(obj: any, start: number, end: number) {
   return multiplier
 }
 
+function groupBy(key: any) {
+  return function group(array: any[]) {
+    return array.reduce((acc: any, obj: any) => {
+      const property = obj[key]
+      acc[property] = acc[property] || []
+      acc[property].push(obj)
+      return acc
+    }, {})
+  }
+}
+
 function newProcessData(row: any[], MA: any[], single = false) {
   const collectedData: number[] = []
   row.forEach((item: any, index: number) => {
@@ -91,35 +102,62 @@ function newProcessData(row: any[], MA: any[], single = false) {
       }
     }
   })
+  
   const collectableDataArray: any[] = []
-  if(single == true) {
-    const indexInMA = MA.findIndex(x => x.Prod_Name_Group == row[0].Prod_Name_Group)
-    MA = [MA[indexInMA]]
-  }
-  MA.forEach((ma: any) => {
-    let collectableData: number[] = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+  MA.forEach((ma: any, maIndex: number) => {
+    let temp = {
+      [maIndex]: Object.values(collectedData),
+    }
     row.forEach((item: any, index: number) => {
-      let refMaxData: number = 0
-      let refIndex: number = 0
       for(let i = 1; i <= 13; i++) {
-        if(item[`sum_MOB_${i}`] == 0) {
-          if(refMaxData == 0) {
-            refMaxData = item[`sum_MOB_${i - 1}`] 
-            refIndex = i
-          }
-          collectableData[i - 1] += (Math.round(refMaxData * multiply(ma, refIndex, i)))
+        if(i == 1) {
+          temp[maIndex][i - 1] = temp[maIndex][i - 1] * ma[`target_MA_MOB_${i}`]
+        } else {
+          temp[maIndex][i - 1] = temp[maIndex][i - 2] * ma[`target_MA_MOB_${i}`]
         }
       }
     })
-    collectableDataArray.push(collectableData)
+    let tempMinusActual = {
+      [maIndex]: temp[maIndex].map((a, ai) => a - collectedData[ai])
+    }
+    let tempReturnArray = []
+
+    //// operate Kent Calculation
+    let refIndex = 1
+    // looping Column (MOB1 - MOB13)
+    let prevCol: number[] = []
+    for(let i = 0; i < 13; i++) {
+      let sumPrevRef = 0
+      if(i == 0) {
+        for(let j = 0; j < 12; j++) {
+          prevCol.push(row[j][`sum_MOB_${i + 1}`])
+        }
+      } else {
+        // sum up Previous column reference cell
+        for(let k = 0; k < refIndex; k++) {
+          if(row[k][`sum_MOB_${i + 1}`] == 0) {
+            sumPrevRef += prevCol[k]
+          }
+        }
+        sumPrevRef == 0 ? '' : refIndex++
+
+        for(let j = 0; j < 12; j++) {
+          if(row[j][`sum_MOB_${i + 1}`] == 0) {
+            // perform MIN(CELL , CELL / TOTALCELL * Multiplier)
+            let x = Math.min(prevCol[j], prevCol[j]/sumPrevRef * tempMinusActual[maIndex][i] )
+            prevCol[j] = x
+          } else {
+            prevCol[j] = row[j][`sum_MOB_${i + 1}`]
+          }
+        }
+      }
+      tempReturnArray.push(prevCol.reduce((a, b) => a + b , 0))
+    }  
+    collectableDataArray.push(tempReturnArray)
   })
 
-  if(single == true ) {
-    let initialValue = Math.round((collectedData[collectedData.length - 1] + collectableDataArray[0][collectedData.length - 1]) / collectedData[0] * 1000 ) / 10
-    return { LIMRA: initialValue }
-  } else {
-    return { collectedData, collectableDataArray }
-  }
+  return { collectedData, collectableDataArray }
+  
 }
 
 function calculateOverallLIMRA(row: any, MA: any[]) {
@@ -199,30 +237,71 @@ app.get('/new', (req: Request, res: Response) => {
   })
 
 app.get('/ma', (req: Request, res: Response) => {
-  const MA = db.prepare("SELECT * FROM newMA WHERE Prod_Name_Group = 'DMTM_OTH'").all()
-  const row = db.prepare(" \
-  SELECT mth_id, sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
-    sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8, \
-    sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13, \
-    count(MOB_1) as total \
-    FROM newData \
-    WHERE Prod_Name_Group = 'DMTM_OTH' \
-    AND LIMRA = '2021' \
-    GROUP BY mth_id ORDER BY mth_id DESC").all()
-
-  row.map((a: any) => a.mth_id = Date.parse(a.mth_id))
-  row.sort((a: any,b: any) => b.mth_id - a.mth_id )
-
-  const processed = newProcessData(row, MA)
-  res.json({MA, processed})
-})
-
-app.get('/productLIMRA', (req: Request, res: Response) => {
-  const MA = db.prepare("SELECT * FROM newMA WHERE target = '0%'").all()
+  const MA = db.prepare("SELECT * FROM newMA WHERE Prod_Name_Group = 'DMTM_OTH' ").all()
   const row = db.prepare("SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
   sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,  \
   sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13  \
-  FROM Persistency_Data \
+  FROM newData \
+  WHERE LIMRA = 2021 AND Prod_Name_Group = 'DMTM_OTH' \
+  GROUP BY mth_id, Prod_Name_Group \
+  ORDER BY Prod_Name_Group, mth_id \
+  ").all()
+
+  row.map((a: any) => a.mth_id = Date.parse(a.mth_id))
+  row.sort((a: any,b: any) => a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id )
+
+  
+
+  const groupByProduct = groupBy("Prod_Name_Group")
+  const groupResult = groupByProduct(row)
+  const groupMAResult = groupByProduct(MA)
+
+  const temp: any = {}
+  Object.keys(groupResult).forEach((item: any) => {
+    temp[item] = newProcessData(groupResult[item], groupMAResult[item])
+  })
+
+  res.json(temp[Object.keys(groupResult)[0]])
+})
+
+app.post('/ma', (req: Request, res: Response) => {
+  const { product, limra } = req.body
+
+  const MA = db.prepare(`SELECT * FROM newMA \
+  WHERE Prod_Name_Group IN (${ product.map(function(){ return '?' }).join(',')}) \
+  `).all(product)
+
+  const row = db.prepare(`SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
+  sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,  \
+  sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13  \
+  FROM newData \
+  WHERE LIMRA IN (${ limra.map(function(){ return '?' }).join(',')}) AND \
+  Prod_Name_Group IN (${ product.map(function(){ return '?' }).join(',')}) \
+  GROUP BY mth_id, Prod_Name_Group \
+  ORDER BY Prod_Name_Group, mth_id \
+  `).all(limra, product)
+
+  row.map((a: any) => a.mth_id = Date.parse(a.mth_id))
+  row.sort((a: any,b: any) => a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id )
+
+  const groupByProduct = groupBy("Prod_Name_Group")
+  const groupResult = groupByProduct(row)
+  const groupMAResult = groupByProduct(MA)
+
+  const temp: any = {}
+  Object.keys(groupResult).forEach((item: any) => {
+    temp[item] = newProcessData(groupResult[item], groupMAResult[item])
+  })
+
+  res.json(temp[Object.keys(groupResult)[0]])
+})
+
+app.get('/productLIMRA', (req: Request, res: Response) => {
+  const MA = db.prepare("SELECT * FROM newMA").all()
+  const row = db.prepare("SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
+  sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,  \
+  sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13  \
+  FROM newData \
   WHERE LIMRA = 2021 \
   GROUP BY mth_id, Prod_Name_Group \
   ORDER BY Prod_Name_Group, mth_id \
@@ -231,23 +310,15 @@ app.get('/productLIMRA', (req: Request, res: Response) => {
   row.map((a: any) => a.mth_id = Date.parse(a.mth_id))
   row.sort((a: any,b: any) => a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id )
 
-  function groupBy(key: any) {
-    return function group(array: any[]) {
-      return array.reduce((acc: any, obj: any) => {
-        const property = obj[key]
-        acc[property] = acc[property] || []
-        acc[property].push(obj)
-        return acc
-      }, {})
-    }
-  }
+  
 
   const groupByProduct = groupBy("Prod_Name_Group")
   const groupResult = groupByProduct(row)
+  const groupMAResult = groupByProduct(MA)
 
   const temp: any = {}
   Object.keys(groupResult).forEach((item: any) => {
-    temp[item] = newProcessData(groupResult[item], MA, true).LIMRA
+    temp[item] = newProcessData(groupResult[item], groupMAResult[item])
   })
   temp['Overall'] = calculateOverallLIMRA(groupResult, MA)
   res.json(temp)

@@ -162,6 +162,16 @@ function multiply(obj, start, end) {
     }
     return multiplier;
 }
+function groupBy(key) {
+    return function group(array) {
+        return array.reduce(function (acc, obj) {
+            var property = obj[key];
+            acc[property] = acc[property] || [];
+            acc[property].push(obj);
+            return acc;
+        }, {});
+    };
+}
 function newProcessData(row, MA, single) {
     if (single === void 0) { single = false; }
     var collectedData = [];
@@ -178,34 +188,60 @@ function newProcessData(row, MA, single) {
         }
     });
     var collectableDataArray = [];
-    if (single == true) {
-        var indexInMA = MA.findIndex(function (x) { return x.Prod_Name_Group == row[0].Prod_Name_Group; });
-        MA = [MA[indexInMA]];
-    }
-    MA.forEach(function (ma) {
-        var collectableData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    MA.forEach(function (ma, maIndex) {
+        var _a, _b;
+        var temp = (_a = {},
+            _a[maIndex] = Object.values(collectedData),
+            _a);
         row.forEach(function (item, index) {
-            var refMaxData = 0;
-            var refIndex = 0;
             for (var i = 1; i <= 13; i++) {
-                if (item["sum_MOB_" + i] == 0) {
-                    if (refMaxData == 0) {
-                        refMaxData = item["sum_MOB_" + (i - 1)];
-                        refIndex = i;
-                    }
-                    collectableData[i - 1] += (Math.round(refMaxData * multiply(ma, refIndex, i)));
+                if (i == 1) {
+                    temp[maIndex][i - 1] = temp[maIndex][i - 1] * ma["target_MA_MOB_" + i];
+                }
+                else {
+                    temp[maIndex][i - 1] = temp[maIndex][i - 2] * ma["target_MA_MOB_" + i];
                 }
             }
         });
-        collectableDataArray.push(collectableData);
+        var tempMinusActual = (_b = {},
+            _b[maIndex] = temp[maIndex].map(function (a, ai) { return a - collectedData[ai]; }),
+            _b);
+        var tempReturnArray = [];
+        //// operate Kent Calculation
+        var refIndex = 1;
+        // looping Column (MOB1 - MOB13)
+        var prevCol = [];
+        for (var i = 0; i < 13; i++) {
+            var sumPrevRef = 0;
+            if (i == 0) {
+                for (var j = 0; j < 12; j++) {
+                    prevCol.push(row[j]["sum_MOB_" + (i + 1)]);
+                }
+            }
+            else {
+                // sum up Previous column reference cell
+                for (var k = 0; k < refIndex; k++) {
+                    if (row[k]["sum_MOB_" + (i + 1)] == 0) {
+                        sumPrevRef += prevCol[k];
+                    }
+                }
+                sumPrevRef == 0 ? '' : refIndex++;
+                for (var j = 0; j < 12; j++) {
+                    if (row[j]["sum_MOB_" + (i + 1)] == 0) {
+                        // perform MIN(CELL , CELL / TOTALCELL * Multiplier)
+                        var x = Math.min(prevCol[j], prevCol[j] / sumPrevRef * tempMinusActual[maIndex][i]);
+                        prevCol[j] = x;
+                    }
+                    else {
+                        prevCol[j] = row[j]["sum_MOB_" + (i + 1)];
+                    }
+                }
+            }
+            tempReturnArray.push(prevCol.reduce(function (a, b) { return a + b; }, 0));
+        }
+        collectableDataArray.push(tempReturnArray);
     });
-    if (single == true) {
-        var initialValue = Math.round((collectedData[collectedData.length - 1] + collectableDataArray[0][collectedData.length - 1]) / collectedData[0] * 1000) / 10;
-        return { LIMRA: initialValue };
-    }
-    else {
-        return { collectedData: collectedData, collectableDataArray: collectableDataArray };
-    }
+    return { collectedData: collectedData, collectableDataArray: collectableDataArray };
 }
 function calculateOverallLIMRA(row, MA) {
     var collectedData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -265,48 +301,59 @@ app.get('/new', function (req, res) {
     res.json({ row: row });
 });
 app.get('/ma', function (req, res) {
-    var MA = db.prepare("SELECT * FROM newMA WHERE Prod_Name_Group = 'DMTM_OTH'").all();
-    var row = db.prepare(" \
-  SELECT mth_id, sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
-    sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8, \
-    sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13, \
-    count(MOB_1) as total \
-    FROM newData \
-    WHERE Prod_Name_Group = 'DMTM_OTH' \
-    AND LIMRA = '2021' \
-    GROUP BY mth_id ORDER BY mth_id DESC").all();
-    row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
-    row.sort(function (a, b) { return b.mth_id - a.mth_id; });
-    var processed = newProcessData(row, MA);
-    res.json({ MA: MA, processed: processed });
-});
-app.get('/productLIMRA', function (req, res) {
-    var MA = db.prepare("SELECT * FROM newMA WHERE target = '0%'").all();
+    var MA = db.prepare("SELECT * FROM newMA WHERE Prod_Name_Group = 'DMTM_OTH' ").all();
     var row = db.prepare("SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
   sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,  \
   sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13  \
-  FROM Persistency_Data \
+  FROM newData \
+  WHERE LIMRA = 2021 AND Prod_Name_Group = 'DMTM_OTH' \
+  GROUP BY mth_id, Prod_Name_Group \
+  ORDER BY Prod_Name_Group, mth_id \
+  ").all();
+    row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
+    row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
+    var groupByProduct = groupBy("Prod_Name_Group");
+    var groupResult = groupByProduct(row);
+    var groupMAResult = groupByProduct(MA);
+    var temp = {};
+    Object.keys(groupResult).forEach(function (item) {
+        temp[item] = newProcessData(groupResult[item], groupMAResult[item]);
+    });
+    res.json(temp[Object.keys(groupResult)[0]]);
+});
+app.post('/ma', function (req, res) {
+    var _a = req.body, product = _a.product, limra = _a.limra;
+    var MA = db.prepare("SELECT * FROM newMA   WHERE Prod_Name_Group IN (" + product.map(function () { return '?'; }).join(',') + ")   ").all(product);
+    var row = db.prepare("SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4,   sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,    sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13    FROM newData   WHERE LIMRA IN (" + limra.map(function () { return '?'; }).join(',') + ") AND   Prod_Name_Group IN (" + product.map(function () { return '?'; }).join(',') + ")   GROUP BY mth_id, Prod_Name_Group   ORDER BY Prod_Name_Group, mth_id   ").all(limra, product);
+    row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
+    row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
+    var groupByProduct = groupBy("Prod_Name_Group");
+    var groupResult = groupByProduct(row);
+    var groupMAResult = groupByProduct(MA);
+    var temp = {};
+    Object.keys(groupResult).forEach(function (item) {
+        temp[item] = newProcessData(groupResult[item], groupMAResult[item]);
+    });
+    res.json(temp[Object.keys(groupResult)[0]]);
+});
+app.get('/productLIMRA', function (req, res) {
+    var MA = db.prepare("SELECT * FROM newMA").all();
+    var row = db.prepare("SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
+  sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,  \
+  sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13  \
+  FROM newData \
   WHERE LIMRA = 2021 \
   GROUP BY mth_id, Prod_Name_Group \
   ORDER BY Prod_Name_Group, mth_id \
   ").all();
     row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
     row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
-    function groupBy(key) {
-        return function group(array) {
-            return array.reduce(function (acc, obj) {
-                var property = obj[key];
-                acc[property] = acc[property] || [];
-                acc[property].push(obj);
-                return acc;
-            }, {});
-        };
-    }
     var groupByProduct = groupBy("Prod_Name_Group");
     var groupResult = groupByProduct(row);
+    var groupMAResult = groupByProduct(MA);
     var temp = {};
     Object.keys(groupResult).forEach(function (item) {
-        temp[item] = newProcessData(groupResult[item], MA, true).LIMRA;
+        temp[item] = newProcessData(groupResult[item], groupMAResult[item]);
     });
     temp['Overall'] = calculateOverallLIMRA(groupResult, MA);
     res.json(temp);

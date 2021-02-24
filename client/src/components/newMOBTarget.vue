@@ -9,14 +9,16 @@
     </div>
     </teleport>
 
-    <el-form label-position="right">
-      <el-form-item label="Set Target">
-        <el-input-number v-model="target" @change="update" :min="0" :max="10"></el-input-number>
-      </el-form-item>
-    </el-form>
     <div style="padding: 1rem;" class=" container">
       <h2 style="padding-left: 1rem;">DMTM 2021</h2>
       <apexchart @click="popper = false" @contextmenu.prevent.stop="" type="line" height="450" :options="chartOptions" :series="series"></apexchart>
+    </div>
+    <div  style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+      <el-form label-position="right">
+        <el-form-item label="Set Target" style="display: inline-flex;">
+          <el-input-number v-model="target" @change="update" :min="0" :max="10"></el-input-number>
+        </el-form-item>
+      </el-form>
     </div>
   </div>
 </template>
@@ -29,13 +31,10 @@ export default defineComponent({
     const data = ref([])
     const dataOriginal = ref([])
     const dataTarget = ref([])
-    const collectableData = ref([])
     const target = ref(0)
-    const originalCollectableData = ref([])
-    const targetCollectableData = ref([])
-
-    const limra = ref(0)
-
+    const total = ref(0)
+    const collected = ref([])
+    
     const posX = ref('0px')
     const posY = ref('0px')
     const popper = ref(false)
@@ -47,26 +46,21 @@ export default defineComponent({
         mode: "cors",
       }).then( async res => {
         const response = await res.json()
-        const tempAll: any = []
-        const total = response.processed.collectedData[0]
-        
-        response.processed.collectableDataArray.forEach((item: any[]) => {
-          const temp: number[] = []
-          item.forEach((subItem: number, index: number) => {
-            temp.push( (subItem + response.processed.collectedData[index]) / total )
-          })
-          tempAll.push(temp)
-        })
-        data.value = tempAll
-        dataOriginal.value = tempAll[0]
-        dataTarget.value = tempAll[0]
-        collectableData.value = response.processed.collectableDataArray
-        originalCollectableData.value = collectableData.value[0]
-        targetCollectableData.value = collectableData.value[0]
-
-        limra.value = dataOriginal.value[dataOriginal.value.length - 1] * 100       
+        data.value = response.collectableDataArray
+        collected.value = response.collectedData
+        total.value = response.collectedData[0]
+        dataOriginal.value = response.collectableDataArray[0]
+        dataTarget.value = response.collectableDataArray[0]
       })
     }
+
+    const limraOriginal = computed(() => {
+      return dataOriginal.value.map((a) => a / total.value)
+    }) 
+
+    const limraTarget = computed(() => {
+      return dataTarget.value.map((a) => a / total.value)
+    }) 
 
     // Call Data
     fetchAll()
@@ -74,7 +68,6 @@ export default defineComponent({
     // Update Target
     const update = () => {
       dataTarget.value = data.value[target.value]
-      targetCollectableData.value = collectableData.value[target.value]
     }
 
     //
@@ -104,12 +97,12 @@ export default defineComponent({
       {
         name: 'Static',
         type: 'line',
-        data: dataOriginal.value
+        data: limraOriginal.value
       },
       {
         name: 'Target',
         type: 'line',
-        data: dataTarget.value
+        data: limraTarget.value
       }
       ]
     })
@@ -150,14 +143,12 @@ export default defineComponent({
           categories: MOBLabel.value
         },
         tooltip: {
-          // intersect: true,
-          // shared: false,
           y: {
             formatter: function (val: any, opts: any) {
               if(opts.seriesIndex == 0) {
-                return Math.round(val * 1000) / 10 + '% | Collectable: ' + originalCollectableData.value[opts.dataPointIndex]
+                return Math.round(val * 1000) / 10 + '% | Collectable: ' + Math.round(dataOriginal.value[opts.dataPointIndex] - collected.value[opts.dataPointIndex])
               } else {
-                return Math.round(val * 1000) / 10 + '% | Collectable: ' + targetCollectableData.value[opts.dataPointIndex] + `<span style="color: orange; font-weight: 600;"> (+${ targetCollectableData.value[opts.dataPointIndex] -  originalCollectableData.value[opts.dataPointIndex] })</span>`              
+                return Math.round(val * 1000) / 10 + '% | Collectable: ' + Math.round(dataTarget.value[opts.dataPointIndex] - collected.value[opts.dataPointIndex]) + `<span style="color: orange; font-weight: 600;"> (+${ Math.round(dataTarget.value[opts.dataPointIndex] - collected.value[opts.dataPointIndex]) - Math.round(dataOriginal.value[opts.dataPointIndex] - collected.value[opts.dataPointIndex]) })</span>`              
               }
             }
           }
@@ -173,7 +164,6 @@ export default defineComponent({
       posX,
       posY,
       popper,
-      limra
     }
   }
 })
