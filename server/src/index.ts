@@ -129,19 +129,19 @@ function newProcessData(row: any[], MA: any[], single = false) {
     for(let i = 0; i < 13; i++) {
       let sumPrevRef = 0
       if(i == 0) {
-        for(let j = 0; j < 12; j++) {
+        for(let j = 0; j < row.length; j++) {
           prevCol.push(row[j][`sum_MOB_${i + 1}`])
         }
       } else {
         // sum up Previous column reference cell
-        for(let k = 0; k < refIndex; k++) {
+        for(let k = 0; k < refIndex && k < row.length ; k++) {
           if(row[k][`sum_MOB_${i + 1}`] == 0) {
             sumPrevRef += prevCol[k]
           }
         }
         sumPrevRef == 0 ? '' : refIndex++
 
-        for(let j = 0; j < 12; j++) {
+        for(let j = 0; j < row.length; j++) {
           if(row[j][`sum_MOB_${i + 1}`] == 0) {
             // perform MIN(CELL , CELL / TOTALCELL * Multiplier)
             let x = Math.min(prevCol[j], prevCol[j]/sumPrevRef * tempMinusActual[maIndex][i] )
@@ -186,8 +186,6 @@ function calculateOverallLIMRA(row: any, MA: any[]) {
   let initialValue = Math.round((collectedData[collectedData.length - 1] + collectableData[collectedData.length - 1]) / collectedData[0] * 1000 ) / 10
   return initialValue
 }
-
-
 
 app.get('/initial', (req: Request, res: Response) => {
   const row = db.prepare("SELECT * FROM Initial_DMTM_2021").all()
@@ -268,15 +266,15 @@ app.post('/ma', (req: Request, res: Response) => {
   const { product, limra } = req.body
 
   const MA = db.prepare(`SELECT * FROM newMA \
-  WHERE Prod_Name_Group IN (${ product.map(function(){ return '?' }).join(',')}) \
+  WHERE Prod_Name_Group = ? \
   `).all(product)
 
   const row = db.prepare(`SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
   sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,  \
   sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13  \
   FROM newData \
-  WHERE LIMRA IN (${ limra.map(function(){ return '?' }).join(',')}) AND \
-  Prod_Name_Group IN (${ product.map(function(){ return '?' }).join(',')}) \
+  WHERE LIMRA = ? AND \
+  Prod_Name_Group = ? \
   GROUP BY mth_id, Prod_Name_Group \
   ORDER BY Prod_Name_Group, mth_id \
   `).all(limra, product)
@@ -296,7 +294,7 @@ app.post('/ma', (req: Request, res: Response) => {
   res.json(temp[Object.keys(groupResult)[0]])
 })
 
-app.get('/productLIMRA', (req: Request, res: Response) => {
+app.get('/maAll', (req: Request, res: Response) => {
   const MA = db.prepare("SELECT * FROM newMA").all()
   const row = db.prepare("SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
   sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,  \

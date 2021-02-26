@@ -10,7 +10,7 @@
     </teleport>
 
     <div style="padding: 1rem;" class=" container">
-      <h2 style="padding-left: 1rem;">DMTM 2021</h2>
+      <h2 style="padding-left: 1rem;">{{ currentParams.product }} | {{ limra }}</h2>
       <apexchart @click="popper = false" @contextmenu.prevent.stop="" type="line" height="450" :options="chartOptions" :series="series"></apexchart>
     </div>
     <div  style="margin-top: 1rem; display: flex; justify-content: flex-end;">
@@ -24,11 +24,21 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue'
-import { storeFilter } from '../store/filter'
+import { defineComponent, ref, computed, toRefs, watch } from 'vue'
+import { useRoute } from 'vue-router'
 export default defineComponent({
   emits: ['highlight'],
-  setup() {
+  props: {
+    limra: {
+      type: Number,
+      default: 2021
+    }
+  },
+  setup(props) {
+    const { limra } = toRefs(props)
+    const route = useRoute()
+    const currentParams = ref()
+
     const data = ref([])
     const dataOriginal = ref([])
     const dataTarget = ref([])
@@ -41,11 +51,21 @@ export default defineComponent({
     const popper = ref(false)
     const configSelected = ref<any>({})
 
-    // Fetch Data
-    const fetchAll = () => {
-      fetch('./ma', {
+    currentParams.value = route.params
+    
+    const fetchQuery = () => {
+      fetch('http://localhost:3000/ma', {
+        method: 'POST',
         mode: "cors",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          product: currentParams.value.product,
+          limra: limra.value
+        })
       }).then( async res => {
+        target.value = 5
         const response = await res.json()
         data.value = response.collectableDataArray
         collected.value = response.collectedData
@@ -54,29 +74,13 @@ export default defineComponent({
         dataTarget.value = response.collectableDataArray[5]
       })
     }
-    
-    const fetchQuery = () => {
-      fetch('./ma', {
-        method: 'POST',
-        mode: "cors",
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          product: storeFilter.selectedProduct,
-          limra: storeFilter.selectedLIMRA
-        })
-      }).then( async res => {
-        storeFilter.updateSearch()
-        target.value = 0
-        const response = await res.json()
-        data.value = response.collectableDataArray
-        collected.value = response.collectedData
-        total.value = response.collectedData[0]
-        dataOriginal.value = response.collectableDataArray[0]
-        dataTarget.value = response.collectableDataArray[0]
-      })
-    }
+
+    watch(() => route.params, (newRoute, oldRoute) => {
+      currentParams.value = route.params
+      if(Object.keys(newRoute).length) {
+        fetchQuery()
+      }
+    })
 
     // Compute LIMRA for chart
     const limraOriginal = computed(() => {
@@ -88,7 +92,7 @@ export default defineComponent({
     }) 
 
     // Call Data
-    fetchAll()
+    fetchQuery()
 
     // Update Target
     const update = () => {
@@ -121,7 +125,7 @@ export default defineComponent({
       return [
       {
         name: 'Static',
-        type: 'line',
+        type: 'area',
         data: limraOriginal.value
       },
       {
@@ -149,13 +153,17 @@ export default defineComponent({
             return Math.round(val * 1000) / 10 + '%'
           }
         },
+        colors: ['#cff1ff', '#1876d6'],
+        fill: {
+          type: 'solid'
+        },
         stroke: {
+          curve: 'smooth',
           dashArray: [0, 3]
         },
         markers: {
           size: 5 
         },
-        colors: ['#77b7f8', '#409EFF'],
         yaxis: {
           max: 1,
           labels: {
@@ -189,7 +197,8 @@ export default defineComponent({
       posX,
       posY,
       popper,
-      fetchQuery
+      fetchQuery,
+      currentParams
     }
   }
 })

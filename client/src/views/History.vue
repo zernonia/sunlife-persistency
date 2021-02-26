@@ -12,12 +12,12 @@
       <el-select v-model="storeFilter.selectedLIMRA" placeholder="Select LIMRA">
         <el-option v-for="item in filterLIMRA" :key="item.value" :label="item.label" :value="item.value" />
       </el-select>
-      <el-button type="primary" >Search</el-button>
+      <el-button type="primary" @click="search" >Search</el-button>
     </el-space>
 
     <el-divider></el-divider>
 
-    <new-mob-target @highlight="highlightData" />
+    <new-mob-target ref="mobChart" @highlight="highlightData"  />
 
     <v-table ref="refTable" :data="storeData.rawData" style="margin-top: 1rem;"></v-table>
 
@@ -52,8 +52,17 @@ export default defineComponent({
     const checkedPercentage = ref(true)
     const movingAverageToggle = ref(false)
 
+    const mobChart = ref<typeof newMobTarget | null>(null)
+
     const updateStaffDesignation = () => {
       storeFilter.selectedProduct = ''
+      storeFilter.selectedLIMRA = ''
+    }
+
+    const search = () => {
+      if(mobChart.value != null) {
+        mobChart.value.fetchQuery()
+      }
     }
 
     const filterProduct = computed(() => {
@@ -102,7 +111,9 @@ export default defineComponent({
       downloadLoading,
       movingAverageToggle,
       refTable,
-      highlightData
+      mobChart,
+      highlightData,
+      search
     }
   }
 })
