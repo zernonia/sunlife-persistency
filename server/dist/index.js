@@ -35,92 +35,44 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spread = (this && this.__spread) || function () {
-    for (var ar = [], i = 0; i < arguments.length; i++) ar = ar.concat(__read(arguments[i]));
-    return ar;
-};
-var __values = (this && this.__values) || function(o) {
-    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-    if (m) return m.call(o);
-    if (o && typeof o.length === "number") return {
-        next: function () {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
-    };
-    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(require("express"));
 var cors_1 = __importDefault(require("cors"));
-var better_sqlite3_1 = __importDefault(require("better-sqlite3"));
-var fs_1 = __importDefault(require("fs"));
 var PORT = 3000;
-var db = new better_sqlite3_1.default('./db/persistency.db');
-var dataLocation = 'C:/Users/sians/OneDrive/Desktop/SL/sunlife-persistency/server/db/';
+var pg_1 = require("pg");
+var client = new pg_1.Client({
+    user: 'postgres',
+    host: 'localhost',
+    database: 'Dashboard',
+    password: '970107',
+    port: 5432,
+});
+client.connect();
+pg_1.types.setTypeParser(pg_1.types.builtins.INT8, function (value) { return parseInt(value); });
 var app = express_1.default();
 app.use(express_1.default.json());
 app.use(cors_1.default());
-function toRows(stmt, params) {
-    var _a;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
-            case 0: return [4 /*yield*/, stmt.columns().map(function (column) { return column.name; })];
-            case 1:
-                _b.sent();
-                if (!params) return [3 /*break*/, 3];
-                return [5 /*yield**/, __values((_a = stmt.raw()).iterate.apply(_a, __spread(params)))];
-            case 2:
-                _b.sent();
-                return [3 /*break*/, 5];
-            case 3: return [5 /*yield**/, __values(stmt.raw().iterate())];
-            case 4:
-                _b.sent();
-                _b.label = 5;
-            case 5: return [2 /*return*/];
-        }
-    });
-}
-function writeToCSV(filename, stmt, params) {
-    return new Promise(function (resolve, reject) {
-        var e_1, _a;
-        var stream = fs_1.default.createWriteStream(filename);
-        try {
-            for (var _b = __values(toRows(stmt, params)), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var row = _c.value;
-                stream.write(row.join(',') + '\n');
-            }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-        stream.on('error', reject);
-        stream.end(resolve);
-    });
-}
+// function* toRows(stmt: Statement, params?: any[]) {
+//   yield stmt.columns().map(column => column.name);
+//   if(params){
+//     yield* stmt.raw().iterate(...params);
+//   } else {
+//     yield* stmt.raw().iterate();
+//   }
+// }
+// function writeToCSV(filename: string, stmt: Statement, params?: any[]) {
+//   return new Promise((resolve, reject) => {
+//     const stream = fs.createWriteStream(filename);
+//     for (const row of toRows(stmt, params)) {
+//       stream.write(row.join(',') + '\n');
+//     }
+//     stream.on('error', reject);
+//     stream.end(resolve);
+//   });
+// }
 function processData(row, MA) {
     var resObj = {};
     row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
@@ -267,165 +219,139 @@ function calculateOverallLIMRA(row, MA) {
     var initialValue = Math.round((collectedData[collectedData.length - 1] + collectableData[collectedData.length - 1]) / collectedData[0] * 1000) / 10;
     return initialValue;
 }
-app.get('/initial', function (req, res) {
-    var row = db.prepare("SELECT * FROM Initial_DMTM_2021").all();
-    // "SELECT mth_id, count(MOB_1) as total, count(payment_method='DEBITC' or null) as C , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
-    // sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8, \
-    // sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13 \
-    // FROM Persistency_Data GROUP BY mth_id ORDER BY mth_id DESC"
-    var rowLastLIMRA = db.prepare("SELECT mth_id, count(MOB_1) as total , sum(MOB_3) as sum_MOB_3,   sum(MOB_6) as sum_MOB_6, sum(MOB_9) as sum_MOB_9, sum(MOB_12) as sum_MOB_12   FROM Persistency_Data   WHERE Prod_Name_Group IN ('DMTM_OTH')   AND Channel IN ('DMTM')   AND LIMRA IN (2020)").all();
-    var lastLIMRAMOB = {
-        mob3: Math.round(rowLastLIMRA[0].sum_MOB_3 / rowLastLIMRA[0].total * 1000) / 10,
-        mob6: Math.round(rowLastLIMRA[0].sum_MOB_6 / rowLastLIMRA[0].total * 1000) / 10,
-        mob9: Math.round(rowLastLIMRA[0].sum_MOB_9 / rowLastLIMRA[0].total * 1000) / 10,
-        mob12: Math.round(rowLastLIMRA[0].sum_MOB_12 / rowLastLIMRA[0].total * 1000) / 10,
-    };
-    var newDBMA = db.prepare("SELECT * FROM MA WHERE Prod_Name_Group = 'DMTM_OTH'").all();
-    var MA = Object.values(newDBMA[0]).slice(1).map(function (item) { return item * 100; });
-    var processed = processData(row, MA);
-    res.json({ row: processed.row, MA: MA, maxData: processed.maxData, lastLIMRAMOB: lastLIMRAMOB });
-});
-app.get('/new', function (req, res) {
-    var row = db.prepare("SELECT mth_id, sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
-    sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8, \
-    sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13, \
-    count(MOB_1) as total , avg(MOB_1) as avg_MOB_1, avg(MOB_2) as avg_MOB_2, avg(MOB_3) as avg_MOB_3, avg(MOB_4) as avg_MOB_4, \
-    avg(MOB_5) as avg_MOB_5, avg(MOB_6) as avg_MOB_6, avg(MOB_7) as avg_MOB_7, avg(MOB_8) as avg_MOB_8, \
-    avg(MOB_9) as avg_MOB_9, avg(MOB_10) as avg_MOB_10, avg(MOB_11) as avg_MOB_11, avg(MOB_12) as avg_MOB_12, avg(MOB_13) as avg_MOB_13 , \
-    avg(est_MOB_1) as est_MOB_1, avg(est_MOB_2) as est_MOB_2, avg(est_MOB_3) as est_MOB_3, avg(est_MOB_4) as est_MOB_4, avg(est_MOB_5) as est_MOB_5, avg(est_MOB_6) as est_MOB_6, \
-    avg(est_MOB_7) as est_MOB_7, avg(est_MOB_8) as est_MOB_8, avg(est_MOB_9) as est_MOB_9, avg(est_MOB_10) as est_MOB_10, avg(est_MOB_11) as est_MOB_11, avg(est_MOB_12) as est_MOB_12, \
-    avg(est_MOB_11) as est_MOB_11 \
-    FROM newData \
-    WHERE Prod_Name_Group = 'DMTM_OTH' \
-    GROUP BY mth_id ORDER BY mth_id DESC").all();
-    res.json({ row: row });
-});
-app.get('/ma', function (req, res) {
-    var MA = db.prepare("SELECT * FROM newMA WHERE Prod_Name_Group = 'DMTM_OTH' ").all();
-    var row = db.prepare("SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
-  sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,  \
-  sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13  \
-  FROM newData \
-  WHERE LIMRA = 2021 AND Prod_Name_Group = 'DMTM_OTH' \
-  GROUP BY mth_id, Prod_Name_Group \
-  ORDER BY Prod_Name_Group, mth_id \
-  ").all();
-    row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
-    row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
-    var groupByProduct = groupBy("Prod_Name_Group");
-    var groupResult = groupByProduct(row);
-    var groupMAResult = groupByProduct(MA);
-    var temp = {};
-    Object.keys(groupResult).forEach(function (item) {
-        temp[item] = newProcessData(groupResult[item], groupMAResult[item]);
-    });
-    res.json(temp[Object.keys(groupResult)[0]]);
-});
-app.post('/ma', function (req, res) {
-    var _a = req.body, product = _a.product, limra = _a.limra;
-    var MA = db.prepare("SELECT * FROM newMA   WHERE Prod_Name_Group = ?   ").all(product);
-    var row = db.prepare("SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4,   sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,    sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13    FROM newData   WHERE LIMRA = ? AND   Prod_Name_Group = ?   GROUP BY mth_id, Prod_Name_Group   ORDER BY Prod_Name_Group, mth_id   ").all(limra, product);
-    row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
-    row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
-    var groupByProduct = groupBy("Prod_Name_Group");
-    var groupResult = groupByProduct(row);
-    var groupMAResult = groupByProduct(MA);
-    var temp = {};
-    Object.keys(groupResult).forEach(function (item) {
-        temp[item] = newProcessData(groupResult[item], groupMAResult[item]);
-    });
-    res.json(temp[Object.keys(groupResult)[0]]);
-});
-app.get('/maAll', function (req, res) {
-    var MA = db.prepare("SELECT * FROM newMA").all();
-    var row = db.prepare("SELECT mth_id, Prod_Name_Group,  count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4, \
-  sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,  \
-  sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13  \
-  FROM newData \
-  WHERE LIMRA = 2021 \
-  GROUP BY mth_id, Prod_Name_Group \
-  ORDER BY Prod_Name_Group, mth_id \
-  ").all();
-    row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
-    row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
-    var groupByProduct = groupBy("Prod_Name_Group");
-    var groupResult = groupByProduct(row);
-    var groupMAResult = groupByProduct(MA);
-    var temp = {};
-    Object.keys(groupResult).forEach(function (item) {
-        temp[item] = newProcessData(groupResult[item], groupMAResult[item]);
-    });
-    temp['Overall'] = calculateOverallLIMRA(groupResult, MA);
-    res.json(temp);
-});
-app.post('/prepareData', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var product, filename, filepath, row;
+app.get('/maAll', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var MA, row, groupByProduct, groupResult, groupMAResult, temp;
     return __generator(this, function (_a) {
-        product = req.body;
-        filename = 'persistency_' + product.toString() + '.csv';
-        filepath = dataLocation + filename;
-        if (product.length) {
-            row = db.prepare("SELECT * FROM Persistency_Data WHERE Prod_Name_Group IN (" + product.map(function () { return '?'; }).join(',') + ")");
-            writeToCSV(filepath, row, product).then(function () {
-                res.json({ filename: filename });
-            }).catch(function (e) { return res.status(500).send(e); });
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, client.query('SELECT * FROM public."newMA"')];
+            case 1:
+                MA = (_a.sent()).rows;
+                return [4 /*yield*/, client.query('SELECT mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
+  sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
+  sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13"  \
+  FROM public."newData" \
+  WHERE "LIMRA" = 2021 \
+  GROUP BY mth_id, "Prod_Name_Group" \
+  ORDER BY "Prod_Name_Group", mth_id')];
+            case 2:
+                row = (_a.sent()).rows;
+                row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
+                row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
+                groupByProduct = groupBy("Prod_Name_Group");
+                groupResult = groupByProduct(row);
+                groupMAResult = groupByProduct(MA);
+                temp = {};
+                Object.keys(groupResult).forEach(function (item) {
+                    temp[item] = newProcessData(groupResult[item], groupMAResult[item]);
+                });
+                temp['Overall'] = calculateOverallLIMRA(groupResult, MA);
+                res.json(temp);
+                return [2 /*return*/];
         }
-        else {
-            res.json({ filename: 'Persistency_Data.csv' });
-        }
-        return [2 /*return*/];
     });
 }); });
-app.get('/downloadData/:filename', function (req, res) {
-    var filename = req.params.filename;
-    var fileLocation = dataLocation + filename;
-    if (!fs_1.default.existsSync(fileLocation)) {
-        res.status(400).send({ filename: fileLocation, message: "No such file available" });
-    }
-    res.download(fileLocation);
-});
-app.post('/filter', function (req, res) {
-    var _a = req.body, product = _a.product, paymentMethod = _a.paymentMethod, staffDesignation = _a.staffDesignation, limra = _a.limra;
-    var row = db.prepare("SELECT mth_id, count(MOB_1) as total , sum(MOB_1) as sum_MOB_1, sum(MOB_2) as sum_MOB_2, sum(MOB_3) as sum_MOB_3, sum(MOB_4) as sum_MOB_4,   sum(MOB_5) as sum_MOB_5, sum(MOB_6) as sum_MOB_6, sum(MOB_7) as sum_MOB_7, sum(MOB_8) as sum_MOB_8,   sum(MOB_9) as sum_MOB_9, sum(MOB_10) as sum_MOB_10, sum(MOB_11) as sum_MOB_11, sum(MOB_12) as sum_MOB_12, sum(MOB_13) as sum_MOB_13   FROM Persistency_Data   WHERE Prod_Name_Group IN (" + product.map(function () { return '?'; }).join(',') + ")   AND payment_method IN (" + paymentMethod.map(function () { return '?'; }).join(',') + ")   AND Channel IN (" + staffDesignation.map(function () { return '?'; }).join(',') + ")   AND LIMRA IN (" + limra.map(function () { return '?'; }).join(',') + ")   GROUP BY mth_id   ORDER BY mth_id DESC").all(product, paymentMethod, staffDesignation, limra);
-    var lastLIMRA = [Number(limra[0]) - 1];
-    var rowLastLIMRA = db.prepare("SELECT mth_id, count(MOB_1) as total , sum(MOB_3) as sum_MOB_3,   sum(MOB_6) as sum_MOB_6, sum(MOB_9) as sum_MOB_9, sum(MOB_12) as sum_MOB_12   FROM Persistency_Data   WHERE Prod_Name_Group IN (" + product.map(function () { return '?'; }).join(',') + ")   AND payment_method IN (" + paymentMethod.map(function () { return '?'; }).join(',') + ")   AND Channel IN (" + staffDesignation.map(function () { return '?'; }).join(',') + ")   AND LIMRA IN (" + limra.map(function () { return '?'; }).join(',') + ")").all(product, paymentMethod, staffDesignation, lastLIMRA);
-    var lastLIMRAMOB = {
-        mob3: Math.round(rowLastLIMRA[0].sum_MOB_3 / rowLastLIMRA[0].total * 1000) / 10,
-        mob6: Math.round(rowLastLIMRA[0].sum_MOB_6 / rowLastLIMRA[0].total * 1000) / 10,
-        mob9: Math.round(rowLastLIMRA[0].sum_MOB_9 / rowLastLIMRA[0].total * 1000) / 10,
-        mob12: Math.round(rowLastLIMRA[0].sum_MOB_12 / rowLastLIMRA[0].total * 1000) / 10,
-    };
-    var newDBMA = db.prepare("SELECT * FROM MA WHERE Prod_Name_Group IN (" + product.map(function () { return '?'; }).join(',') + ") ").all(product);
-    var MA = Object.values(newDBMA[0]).slice(1).map(function (item) { return item * 100; });
-    var processed = processData(row, MA);
-    res.json({ row: processed.row, MA: MA, maxData: processed.maxData, lastLIMRAMOB: lastLIMRAMOB });
-});
-app.get('/filterRawDataAll', function (req, res) {
-    var row = db.prepare("SELECT * FROM newData WHERE Prod_Name_Group = 'DMTM_OTH' AND LIMRA = '2021' GROUP BY mth_id ORDER BY mth_id DESC LIMIT 100 ").all();
-    row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
-    row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
-    res.json(row);
-});
-app.post('/filterRawData', function (req, res) {
-    var _a = req.body, product = _a.product, paymentMethod = _a.paymentMethod, staffDesignation = _a.staffDesignation, mob = _a.mob, limra = _a.limra;
+app.get('/ma', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var MA, row, groupByProduct, groupResult, groupMAResult, temp;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, client.query('SELECT * FROM public."newMA" WHERE "Prod_Name_Group" = "DMTM_OTH"')];
+            case 1:
+                MA = (_a.sent()).rows;
+                return [4 /*yield*/, client.query('SELECT mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
+  sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
+  sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13"  \
+  FROM public."newData" \
+  WHERE "LIMRA" = 2021 AND "Prod_Name_Group" = "DMTM_OTH" \
+  GROUP BY mth_id, "Prod_Name_Group" \
+  ORDER BY "Prod_Name_Group", mth_id')];
+            case 2:
+                row = (_a.sent()).rows;
+                row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
+                row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
+                groupByProduct = groupBy("Prod_Name_Group");
+                groupResult = groupByProduct(row);
+                groupMAResult = groupByProduct(MA);
+                temp = {};
+                Object.keys(groupResult).forEach(function (item) {
+                    temp[item] = newProcessData(groupResult[item], groupMAResult[item]);
+                });
+                res.json(temp[Object.keys(groupResult)[0]]);
+                return [2 /*return*/];
+        }
+    });
+}); });
+app.post('/ma', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a, product, limra, MA, row, groupByProduct, groupResult, groupMAResult, temp;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                _a = req.body, product = _a.product, limra = _a.limra;
+                return [4 /*yield*/, client.query('SELECT * FROM public."newMA" WHERE "Prod_Name_Group" = $1', [product])];
+            case 1:
+                MA = (_b.sent()).rows;
+                return [4 /*yield*/, client.query('SELECT mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
+  sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
+  sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13"  \
+  FROM public."newData" \
+  WHERE "LIMRA" = $1 AND "Prod_Name_Group" = $2 \
+  GROUP BY mth_id, "Prod_Name_Group" \
+  ORDER BY "Prod_Name_Group", mth_id', [limra, product])];
+            case 2:
+                row = (_b.sent()).rows;
+                row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
+                row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
+                groupByProduct = groupBy("Prod_Name_Group");
+                groupResult = groupByProduct(row);
+                groupMAResult = groupByProduct(MA);
+                temp = {};
+                Object.keys(groupResult).forEach(function (item) {
+                    temp[item] = newProcessData(groupResult[item], groupMAResult[item]);
+                });
+                res.json(temp[Object.keys(groupResult)[0]]);
+                return [2 /*return*/];
+        }
+    });
+}); });
+// app.get('/downloadData/:filename', (req: Request, res: Response) => {
+//   const filename = req.params.filename  
+//   const fileLocation = dataLocation + filename
+//   if(!fs.existsSync(fileLocation)){
+//     res.status(400).send({ filename: fileLocation, message: "No such file available"})
+//   }
+//   res.download(fileLocation)
+// })
+app.get('/filterRawDataAll', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var row;
-    if (mob == 1) {
-        row = db.prepare("SELECT *\n    FROM Persistency_Data     WHERE Prod_Name_Group IN (" + product.map(function () { return '?'; }).join(',') + ")     AND payment_method IN (" + paymentMethod.map(function () { return '?'; }).join(',') + ")     AND Channel IN (" + staffDesignation.map(function () { return '?'; }).join(',') + ")     AND LIMRA IN (" + limra.map(function () { return '?'; }).join(',') + ")     AND status_cd = 'IF'\n    ").all(product, paymentMethod, staffDesignation, limra);
-    }
-    else {
-        row = db.prepare("SELECT *\n    FROM Persistency_Data     WHERE Prod_Name_Group IN (" + product.map(function () { return '?'; }).join(',') + ")     AND payment_method IN (" + paymentMethod.map(function () { return '?'; }).join(',') + ")     AND Channel IN (" + staffDesignation.map(function () { return '?'; }).join(',') + ")     AND LIMRA IN (" + limra.map(function () { return '?'; }).join(',') + ")     AND MOB_" + mob + " = 0     AND MOB_" + (mob - 1) + " != 0     AND status_cd = 'IF'\n    ").all(product, paymentMethod, staffDesignation, limra);
-    }
-    res.json(row);
-});
-app.post('/filterRawDataDownload', function (req, res) {
-    var _a = req.body, product = _a.product, paymentMethod = _a.paymentMethod, staffDesignation = _a.staffDesignation, mob = _a.mob, limra = _a.limra;
-    var filename = 'raw_persistency_' + product.toString() + limra.toString() + '_MOB_' + mob.toString() + '.csv';
-    var filepath = dataLocation + filename;
-    var row = db.prepare("SELECT *\n  FROM Persistency_Data   WHERE Prod_Name_Group IN (" + product.map(function () { return '?'; }).join(',') + ")   AND payment_method IN (" + paymentMethod.map(function () { return '?'; }).join(',') + ")   AND Channel IN (" + staffDesignation.map(function () { return '?'; }).join(',') + ")   AND LIMRA IN (" + limra.map(function () { return '?'; }).join(',') + ")   AND MOB_" + mob + " = 0   AND MOB_" + (mob - 1) + " != 0   AND status_cd = 'IF'\n  ");
-    writeToCSV(filepath, row, [product, paymentMethod, staffDesignation, limra]).then(function () {
-        res.json({ filename: filename });
-    }).catch(function (e) { return res.status(500).send(e); });
-});
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, client.query("SELECT * FROM public.\"newData\" WHERE \"Prod_Name_Group\" = 'DMTM_OTH' AND \"LIMRA\" = '2021' GROUP BY mth_id ORDER BY mth_id DESC LIMIT 100 ")];
+            case 1:
+                row = (_a.sent()).rows;
+                row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
+                row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
+                res.json(row);
+                return [2 /*return*/];
+        }
+    });
+}); });
+// app.post('/filterRawDataDownload', (req: Request, res: Response) => {
+//   const { product, paymentMethod, staffDesignation, mob, limra } = req.body
+//   const filename = 'raw_persistency_' + product.toString() + limra.toString() + '_MOB_' + mob.toString() + '.csv'
+//   const filepath = dataLocation + filename
+//   const row = db.prepare(`SELECT *
+//   FROM Persistency_Data \
+//   WHERE Prod_Name_Group IN (${ product.map(function(){ return '?' }).join(',')}) \
+//   AND payment_method IN (${ paymentMethod.map(function(){ return '?' }).join(',')}) \
+//   AND Channel IN (${ staffDesignation.map(function(){ return '?' }).join(',')}) \
+//   AND LIMRA IN (${ limra.map(function(){ return '?' }).join(',')}) \
+//   AND MOB_${mob} = 0 \
+//   AND MOB_${mob - 1} != 0 \
+//   AND status_cd = 'IF'
+//   `)
+//   writeToCSV(filepath, row, [product, paymentMethod, staffDesignation, limra]).then( () => {
+//     res.json({filename})
+//   }).catch(e => res.status(500).send(e))
+// }) 
 app.listen(PORT, function () {
     console.log("Server is listening on port " + PORT);
 });

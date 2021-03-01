@@ -54,7 +54,7 @@ export default defineComponent({
     currentParams.value = route.params
     
     const fetchQuery = () => {
-      fetch('http://localhost:3000/ma', {
+      fetch('../ma', {
         method: 'POST',
         mode: "cors",
         headers: {
