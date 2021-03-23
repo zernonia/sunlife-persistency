@@ -72,8 +72,6 @@ export default defineComponent({
   position: relative;
   display: block;
   padding: .75rem 1.25rem;
-  /* background-color: #fff; */
-  /* border: 1px solid rgba(0,0,0,.125); */
 }
 
 
