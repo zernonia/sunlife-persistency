@@ -52,6 +52,7 @@ var client = new pg_1.Client({
 });
 client.connect();
 pg_1.types.setTypeParser(pg_1.types.builtins.INT8, function (value) { return parseInt(value); });
+pg_1.types.setTypeParser(1700, function (value) { return parseFloat(value); });
 var app = express_1.default();
 app.use(express_1.default.json());
 app.use(cors_1.default());
@@ -219,6 +220,7 @@ function calculateOverallLIMRA(row, MA) {
     var initialValue = Math.round((collectedData[collectedData.length - 1] + collectableData[collectedData.length - 1]) / collectedData[0] * 1000) / 10;
     return initialValue;
 }
+var querySum = "SELECT TO_DATE(mth_id, 'DDMonYYYY') as mth_id, \"Prod_Name_Group\",  count(\"MOB_1\") as total , sum(\"MOB_1\") as \"sum_MOB_1\", sum(\"MOB_2\") as \"sum_MOB_2\", sum(\"MOB_3\") as \"sum_MOB_3\", sum(\"MOB_4\") as \"sum_MOB_4\",   sum(\"MOB_5\") as \"sum_MOB_5\", sum(\"MOB_6\") as \"sum_MOB_6\", sum(\"MOB_7\") as \"sum_MOB_7\", sum(\"MOB_8\") as \"sum_MOB_8\",    sum(\"MOB_9\") as \"sum_MOB_9\", sum(\"MOB_10\") as \"sum_MOB_10\", sum(\"MOB_11\") as \"sum_MOB_11\", sum(\"MOB_12\") as \"sum_MOB_12\", sum(\"MOB_13\") as \"sum_MOB_13\",   sum(\"FYAP\") as \"sum_AFYP\"\n  ";
 app.get('/maAll', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var MA, row, groupByProduct, groupResult, groupMAResult, temp;
     return __generator(this, function (_a) {
@@ -226,17 +228,9 @@ app.get('/maAll', function (req, res) { return __awaiter(void 0, void 0, void 0,
             case 0: return [4 /*yield*/, client.query('SELECT * FROM public."newMA"')];
             case 1:
                 MA = (_a.sent()).rows;
-                return [4 /*yield*/, client.query('SELECT mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
-  sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
-  sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13"  \
-  FROM public."newData" \
-  WHERE "LIMRA" = 2021 \
-  GROUP BY mth_id, "Prod_Name_Group" \
-  ORDER BY "Prod_Name_Group", mth_id')];
+                return [4 /*yield*/, client.query(querySum + "   FROM public.\"newData\"   WHERE \"LIMRA\" = 2021   GROUP BY mth_id, \"Prod_Name_Group\"   ORDER BY \"Prod_Name_Group\", mth_id DESC ")];
             case 2:
                 row = (_a.sent()).rows;
-                row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
-                row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
                 groupByProduct = groupBy("Prod_Name_Group");
                 groupResult = groupByProduct(row);
                 groupMAResult = groupByProduct(MA);
@@ -254,20 +248,12 @@ app.get('/ma', function (req, res) { return __awaiter(void 0, void 0, void 0, fu
     var MA, row, groupByProduct, groupResult, groupMAResult, temp;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, client.query('SELECT * FROM public."newMA" WHERE "Prod_Name_Group" = "DMTM_OTH"')];
+            case 0: return [4 /*yield*/, client.query("SELECT * FROM public.\"newMA\" WHERE \"Prod_Name_Group\" = 'DMTM_OTH'")];
             case 1:
                 MA = (_a.sent()).rows;
-                return [4 /*yield*/, client.query('SELECT mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
-  sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
-  sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13"  \
-  FROM public."newData" \
-  WHERE "LIMRA" = 2021 AND "Prod_Name_Group" = "DMTM_OTH" \
-  GROUP BY mth_id, "Prod_Name_Group" \
-  ORDER BY "Prod_Name_Group", mth_id')];
+                return [4 /*yield*/, client.query(" " + querySum + "   FROM public.\"newData\"   WHERE \"LIMRA\" = 2021 AND \"Prod_Name_Group\" = 'DMTM_OTH'   GROUP BY mth_id, \"Prod_Name_Group\"   ORDER BY \"Prod_Name_Group\", mth_id DESC ")];
             case 2:
                 row = (_a.sent()).rows;
-                row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
-                row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
                 groupByProduct = groupBy("Prod_Name_Group");
                 groupResult = groupByProduct(row);
                 groupMAResult = groupByProduct(MA);
@@ -289,17 +275,9 @@ app.post('/ma', function (req, res) { return __awaiter(void 0, void 0, void 0, f
                 return [4 /*yield*/, client.query('SELECT * FROM public."newMA" WHERE "Prod_Name_Group" = $1', [product])];
             case 1:
                 MA = (_b.sent()).rows;
-                return [4 /*yield*/, client.query('SELECT mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
-  sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
-  sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13"  \
-  FROM public."newData" \
-  WHERE "LIMRA" = $1 AND "Prod_Name_Group" = $2 \
-  GROUP BY mth_id, "Prod_Name_Group" \
-  ORDER BY "Prod_Name_Group", mth_id', [limra, product])];
+                return [4 /*yield*/, client.query(querySum + "   FROM public.\"newData\"   WHERE \"LIMRA\" = $1 AND \"Prod_Name_Group\" = $2   GROUP BY mth_id, \"Prod_Name_Group\"   ORDER BY \"Prod_Name_Group\", mth_id DESC ", [limra, product])];
             case 2:
                 row = (_b.sent()).rows;
-                row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
-                row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
                 groupByProduct = groupBy("Prod_Name_Group");
                 groupResult = groupByProduct(row);
                 groupMAResult = groupByProduct(MA);

@@ -16,6 +16,7 @@ const client = new Client({
 client.connect()
 
 types.setTypeParser(types.builtins.INT8, (value: string) => parseInt(value))
+types.setTypeParser(1700, (value: string) => parseFloat(value))
 
 const app = express()
 app.use(express.json())
@@ -196,20 +197,20 @@ function calculateOverallLIMRA(row: any, MA: any[]) {
   return initialValue
 }
 
+const querySum = `SELECT TO_DATE(mth_id, 'DDMonYYYY') as mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
+  sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
+  sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13", \
+  sum("FYAP") as "sum_AFYP"
+  `
 
 app.get('/maAll', async (req: Request, res: Response) => { 
   // client.query('SELECT * FROM public."newMA"')
   const MA = (await client.query('SELECT * FROM public."newMA"')).rows
-  const row = (await client.query('SELECT mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
-  sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
-  sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13"  \
+  const row = (await client.query(`${querySum} \
   FROM public."newData" \
   WHERE "LIMRA" = 2021 \
   GROUP BY mth_id, "Prod_Name_Group" \
-  ORDER BY "Prod_Name_Group", mth_id')).rows
-
-  row.map((a: any) => a.mth_id = Date.parse(a.mth_id))
-  row.sort((a: any,b: any) => a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id )
+  ORDER BY "Prod_Name_Group", mth_id DESC `)).rows
 
   const groupByProduct = groupBy("Prod_Name_Group")
   const groupResult = groupByProduct(row)
@@ -224,17 +225,12 @@ app.get('/maAll', async (req: Request, res: Response) => {
 })
 
 app.get('/ma', async (req: Request, res: Response) => {
-  const MA = (await client.query('SELECT * FROM public."newMA" WHERE "Prod_Name_Group" = "DMTM_OTH"')).rows
-  const row = (await client.query('SELECT mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
-  sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
-  sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13"  \
+  const MA = (await client.query(`SELECT * FROM public."newMA" WHERE "Prod_Name_Group" = 'DMTM_OTH'`)).rows
+  const row = (await client.query(` ${querySum} \
   FROM public."newData" \
-  WHERE "LIMRA" = 2021 AND "Prod_Name_Group" = "DMTM_OTH" \
+  WHERE "LIMRA" = 2021 AND "Prod_Name_Group" = 'DMTM_OTH' \
   GROUP BY mth_id, "Prod_Name_Group" \
-  ORDER BY "Prod_Name_Group", mth_id')).rows
-
-  row.map((a: any) => a.mth_id = Date.parse(a.mth_id))
-  row.sort((a: any,b: any) => a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id )
+  ORDER BY "Prod_Name_Group", mth_id DESC `)).rows
 
   const groupByProduct = groupBy("Prod_Name_Group")
   const groupResult = groupByProduct(row)
@@ -252,16 +248,11 @@ app.post('/ma', async (req: Request, res: Response) => {
   const { product, limra } = req.body
 
   const MA = (await client.query('SELECT * FROM public."newMA" WHERE "Prod_Name_Group" = $1', [product])).rows
-  const row = (await client.query('SELECT mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
-  sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
-  sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13"  \
+  const row = (await client.query(`${querySum} \
   FROM public."newData" \
   WHERE "LIMRA" = $1 AND "Prod_Name_Group" = $2 \
   GROUP BY mth_id, "Prod_Name_Group" \
-  ORDER BY "Prod_Name_Group", mth_id',[limra, product])).rows
-
-  row.map((a: any) => a.mth_id = Date.parse(a.mth_id))
-  row.sort((a: any,b: any) => a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id )
+  ORDER BY "Prod_Name_Group", mth_id DESC `,[limra, product])).rows
 
   const groupByProduct = groupBy("Prod_Name_Group")
   const groupResult = groupByProduct(row)

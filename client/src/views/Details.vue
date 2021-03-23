@@ -6,17 +6,44 @@
     <new-mob-target ref="mobChart" @highlight="highlightData" style="margin-top: 1rem;" />
 
     <el-divider></el-divider>
+
+    <selection-d-n-d></selection-d-n-d>
+
+    <h2 class="el-page-header__content">History</h2>
+
+    <el-timeline>
+      <el-timeline-item timestamp="2018/4/12" placement="top" color="#1876d6">
+        <el-card>
+          <h4>Update Github template</h4>
+          <p>Tom committed 2018/4/12 20:46</p>
+        </el-card>
+      </el-timeline-item>
+      <el-timeline-item timestamp="2018/4/3" placement="top" color="#1876d6">
+        <el-card>
+          <h4>Update Github template</h4>
+          <p>Tom committed 2018/4/3 20:46</p>
+        </el-card>
+      </el-timeline-item>
+      <el-timeline-item timestamp="2018/4/2" placement="top" color="#1876d6">
+        <el-card>
+          <h4>Update Github template</h4>
+          <p>Tom committed 2018/4/2 20:46</p>
+        </el-card>
+      </el-timeline-item>
+    </el-timeline>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, computed, ComponentPublicInstance } from 'vue'
 import newMobTarget from '../components/newMOBTargetSearch.vue'
+import SelectionDND from '../components/SelectionDND.vue'
 
 
 export default defineComponent({
   components: {
-    newMobTarget
+    newMobTarget,
+    SelectionDND
   },
   setup() {
     const data = ref()
@@ -47,12 +74,14 @@ export default defineComponent({
       movingAverageToggle,
       refTable,
       mobChart,
-      highlightData,
+      highlightData
     }
   }
 })
 </script>
 
 <style>
-
+.el-timeline-item__tail {
+  border-left: 2px solid #1876d6;
+}
 </style>
