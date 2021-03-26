@@ -1,51 +1,36 @@
 <template>
   <div>
-    <h1>Persistency Calculator</h1>
+    <h1 id="page-title">Persistency Calculator</h1>
     <el-page-header @back="$router.push('/')" content="Overall" />
 
-    <new-mob-target ref="mobChart" @highlight="highlightData" style="margin-top: 1rem;" />
+    <new-mob-target ref="mobChart" @highlight="highlightData" style="margin-top: 1rem;" :product="routeData.lastDetailRoute" :key="routeData.lastDetailRoute" />
 
     <el-divider></el-divider>
 
-    <selection-d-n-d></selection-d-n-d>
+    <campaign />
 
-    <h2 class="el-page-header__content">History</h2>
-
-    <el-timeline>
-      <el-timeline-item timestamp="2018/4/12" placement="top" color="#1876d6">
-        <el-card>
-          <h4>Update Github template</h4>
-          <p>Tom committed 2018/4/12 20:46</p>
-        </el-card>
-      </el-timeline-item>
-      <el-timeline-item timestamp="2018/4/3" placement="top" color="#1876d6">
-        <el-card>
-          <h4>Update Github template</h4>
-          <p>Tom committed 2018/4/3 20:46</p>
-        </el-card>
-      </el-timeline-item>
-      <el-timeline-item timestamp="2018/4/2" placement="top" color="#1876d6">
-        <el-card>
-          <h4>Update Github template</h4>
-          <p>Tom committed 2018/4/2 20:46</p>
-        </el-card>
-      </el-timeline-item>
-    </el-timeline>
+    <!-- <selection-d-n-d :product="routeData.lastDetailRoute" :mob="highlightedMOB" :key="routeData.lastDetailRoute"></selection-d-n-d> -->
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, ComponentPublicInstance } from 'vue'
+import { defineComponent, ref, watch, ComponentPublicInstance, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { routeData } from '../store/route'
 import newMobTarget from '../components/newMOBTargetSearch.vue'
-import SelectionDND from '../components/SelectionDND.vue'
+// import SelectionDND from '../components/SelectionDND.vue'
+import Campaign from '../components/Campaign.vue'
 
 
 export default defineComponent({
   components: {
     newMobTarget,
-    SelectionDND
+    Campaign
+    // SelectionDND
   },
   setup() {
+    const route = useRoute()
+
     const data = ref()
     const refTable = ref<ComponentPublicInstance<HTMLDivElement>>()
     const props = { multiple: true }
@@ -56,13 +41,32 @@ export default defineComponent({
     const checkedPercentage = ref(true)
     const movingAverageToggle = ref(false)
 
+    const highlightedMOB = ref(0)
+
     const mobChart = ref<typeof newMobTarget | null>(null)
 
-    const highlightData = () => {
+    const highlightData = (configSelected: any) => {
+      console.log(configSelected);
+      highlightedMOB.value = configSelected.dataPointIndex + 1
+      
       if(refTable.value != null) {
         refTable.value.$el.scrollIntoView()
       }
     }
+
+    onMounted(() => {
+      routeData.updateRoute(route.params.product)
+      document.getElementsByClassName('main-container')[0]?.scrollIntoView()
+    })
+
+    watch(() => route.params.product , (newVal, oldVal) => {
+      if(newVal != "") {
+        highlightedMOB.value = 0
+        routeData.updateRoute(route.params.product)
+        document.getElementsByClassName('main-container')[0]?.scrollIntoView()
+      }
+    }, { deep: false })
+    
 
     return {
       data,
@@ -74,7 +78,9 @@ export default defineComponent({
       movingAverageToggle,
       refTable,
       mobChart,
-      highlightData
+      highlightData,
+      routeData,
+      highlightedMOB
     }
   }
 })

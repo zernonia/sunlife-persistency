@@ -3,15 +3,15 @@
     <teleport to="body">
     <div v-if="popper" @contextmenu.prevent.stop="" class="el-dropdown__popper el-popper is-light is-pure" :style="{ left: posX, top: posY }">
       <ul class="el-dropdown-menu " style="width: 150px; text-align: left;">
-        <li @click="$emit('highlight'); popper = false" class="el-dropdown-menu__item">Highlight Data</li>
+        <li @click="$emit('highlight', configSelected); popper = false" class="el-dropdown-menu__item">Highlight Data</li>
         <li class="el-dropdown-menu__item">Download Data</li>
       </ul>
     </div>
     </teleport>
 
     <div style="padding: 1rem;" class=" container">
-      <h2 style="padding-left: 1rem;">{{ currentParams.product }} | {{ limra }}</h2>
-      <apexchart @click="popper = false" @contextmenu.prevent.stop="" type="line" height="450" :options="chartOptions" :series="series"></apexchart>
+      <h2 style="padding-left: 1rem;">{{ product }} | {{ limra }}</h2>
+      <apexchart @click="popper = false" @contextmenu.prevent.stop="" type="line" height="450" :options="chartOptions" :series="series" v-if="product"></apexchart>
     </div>
     <div  style="margin-top: 1rem; display: flex; justify-content: flex-end;">
       <el-form label-position="right">
@@ -24,20 +24,21 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, toRefs, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { defineComponent, ref, computed, toRefs, watch, onMounted } from 'vue'
 export default defineComponent({
   emits: ['highlight'],
   props: {
     limra: {
       type: Number,
       default: 2021
+    },
+    product: {
+      type: String,
+      required: true
     }
   },
   setup(props) {
-    const { limra } = toRefs(props)
-    const route = useRoute()
-    const currentParams = ref()
+    const { limra, product } = toRefs(props)
 
     const data = ref([])
     const dataOriginal = ref([])
@@ -50,18 +51,16 @@ export default defineComponent({
     const posY = ref('0px')
     const popper = ref(false)
     const configSelected = ref<any>({})
-
-    currentParams.value = route.params
     
     const fetchQuery = () => {
-      fetch('../ma', {
+      fetch('../main/ma', {
         method: 'POST',
         mode: "cors",
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          product: currentParams.value.product,
+          product: product.value,
           limra: limra.value
         })
       }).then( async res => {
@@ -75,13 +74,6 @@ export default defineComponent({
       })
     }
 
-    watch(() => route.params, (newRoute, oldRoute) => {
-      currentParams.value = route.params
-      if(Object.keys(newRoute).length) {
-        fetchQuery()
-      }
-    })
-
     // Compute LIMRA for chart
     const limraOriginal = computed(() => {
       return dataOriginal.value.map((a) => a / total.value)
@@ -92,7 +84,9 @@ export default defineComponent({
     }) 
 
     // Call Data
-    fetchQuery()
+    onMounted(() => {
+      if(product.value != '') fetchQuery()
+    })
 
     // Update Target
     const update = () => {
@@ -198,7 +192,7 @@ export default defineComponent({
       posY,
       popper,
       fetchQuery,
-      currentParams
+      configSelected
     }
   }
 })

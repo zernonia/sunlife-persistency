@@ -57,7 +57,7 @@ export default defineComponent({
     const overall = ref(0)
 
     const fetchAll = () => {
-      fetch('./maAll', {
+      fetch('./main/maAll', {
         mode: "cors",
       }).then( async res => {
         const response = await res.json()
