@@ -14,10 +14,21 @@
 
 <script lang="ts">
 import { computed, defineComponent, toRefs } from 'vue'
+
+interface Target {
+  product: string;
+  limra: number;
+  target: number;
+}
+
 export default defineComponent({
   props: {
     title: String,
     product: String,
+    target: {
+      type: Array,
+      default: () => ([])
+    },
     data: {
       type: Object,
       default: () => ({
@@ -27,9 +38,17 @@ export default defineComponent({
     }
   },
   setup(props){
-    const { data } = toRefs(props)
+    const { data, target } = toRefs(props)
     const dataOriginal = computed(() => data.value.collectableDataArray[0] || [])
-    const dataTarget =  computed(() => data.value.collectableDataArray[5] || [])
+    const getTarget = computed(() => {
+      const obj = target.value[0] as Target
+      if(obj) {
+        return obj['target']
+      } else {
+        return 5
+      }
+    })
+    const dataTarget =  computed(() => data.value.collectableDataArray[getTarget.value] || [])
     const total = computed(() => data.value.collectedData[0] || [])
     const collected = computed(() => data.value.collectedData[5] || [])
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { client } from '../db'
 import { Parser } from 'json2csv'
+import { groupBy } from '../utils/func'
 const mainRouter = Router()
 
 mainRouter.get('/')
@@ -48,17 +49,6 @@ function multiply(obj: any, start: number, end: number) {
     startTime++
   }
   return multiplier
-}
-
-function groupBy(key: any) {
-  return function group(array: any[]) {
-    return array.reduce((acc: any, obj: any) => {
-      const property = obj[key]
-      acc[property] = acc[property] || []
-      acc[property].push(obj)
-      return acc
-    }, {})
-  }
 }
 
 function newProcessData(row: any[], MA: any[], single = false) {

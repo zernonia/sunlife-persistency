@@ -38,6 +38,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = require("express");
 var db_1 = require("../db");
+var func_1 = require("../utils/func");
 var mainRouter = express_1.Router();
 mainRouter.get('/');
 function processData(row, MA) {
@@ -80,16 +81,6 @@ function multiply(obj, start, end) {
         startTime++;
     }
     return multiplier;
-}
-function groupBy(key) {
-    return function group(array) {
-        return array.reduce(function (acc, obj) {
-            var property = obj[key];
-            acc[property] = acc[property] || [];
-            acc[property].push(obj);
-            return acc;
-        }, {});
-    };
 }
 function newProcessData(row, MA, single) {
     if (single === void 0) { single = false; }
@@ -197,7 +188,7 @@ mainRouter.get('/maAll', function (req, res) { return __awaiter(void 0, void 0, 
                 return [4 /*yield*/, db_1.client.query(querySum + "   FROM public.\"newData\"   WHERE \"LIMRA\" = 2021   GROUP BY mth_id, \"Prod_Name_Group\"   ORDER BY \"Prod_Name_Group\", mth_id DESC ")];
             case 2:
                 row = (_a.sent()).rows;
-                groupByProduct = groupBy("Prod_Name_Group");
+                groupByProduct = func_1.groupBy("Prod_Name_Group");
                 groupResult = groupByProduct(row);
                 groupMAResult = groupByProduct(MA);
                 temp = {};
@@ -220,7 +211,7 @@ mainRouter.get('/ma', function (req, res) { return __awaiter(void 0, void 0, voi
                 return [4 /*yield*/, db_1.client.query(" " + querySum + "   FROM public.\"newData\"   WHERE \"LIMRA\" = 2021 AND \"Prod_Name_Group\" = 'DMTM_OTH'   GROUP BY mth_id, \"Prod_Name_Group\"   ORDER BY \"Prod_Name_Group\", mth_id DESC ")];
             case 2:
                 row = (_a.sent()).rows;
-                groupByProduct = groupBy("Prod_Name_Group");
+                groupByProduct = func_1.groupBy("Prod_Name_Group");
                 groupResult = groupByProduct(row);
                 groupMAResult = groupByProduct(MA);
                 temp = {};
@@ -244,7 +235,7 @@ mainRouter.post('/ma', function (req, res) { return __awaiter(void 0, void 0, vo
                 return [4 /*yield*/, db_1.client.query(querySum + "   FROM public.\"newData\"   WHERE \"LIMRA\" = $1 AND \"Prod_Name_Group\" = $2   GROUP BY mth_id, \"Prod_Name_Group\"   ORDER BY \"Prod_Name_Group\", mth_id DESC ", [limra, product])];
             case 2:
                 row = (_b.sent()).rows;
-                groupByProduct = groupBy("Prod_Name_Group");
+                groupByProduct = func_1.groupBy("Prod_Name_Group");
                 groupResult = groupByProduct(row);
                 groupMAResult = groupByProduct(MA);
                 temp = {};

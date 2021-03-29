@@ -5,7 +5,7 @@
         <i class="el-icon-menu"></i>
         <!-- <template #title>Navigator Two</template> -->
       </el-menu-item>
-      <el-menu-item index="2"  @click="$router.push('/history')">
+      <el-menu-item index="2"  @click="$router.push(`/details/${ routeData.lastDetailRoute }`)">
         <i class="el-icon-document"></i>
         <!-- <template #title>Navigator Three</template> -->
       </el-menu-item>
@@ -27,9 +27,9 @@
 <script lang="ts">
 import { defineComponent, watch, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { routeData } from './store/route'
 
 export default defineComponent({
-
   setup() {
     const activeVal = ref('1')
     const route = useRoute()
@@ -37,12 +37,13 @@ export default defineComponent({
       () => route.name,
       async newNames => {
         newNames == 'Home' ? activeVal.value = '1' :
-        newNames == 'History' ? activeVal.value = '2' : activeVal.value = '3'
+        newNames == 'Details' ? activeVal.value = '2' : activeVal.value = '3'
       }
     )
 
     return {
-      activeVal
+      activeVal,
+      routeData
     }
   }
 })

@@ -35,43 +35,63 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-var express_1 = __importDefault(require("express"));
-var cors_1 = __importDefault(require("cors"));
-var db_1 = require("./db");
-var pg_1 = require("pg");
-var dnd_1 = __importDefault(require("./route/dnd"));
-var main_1 = __importDefault(require("./route/main"));
-var campaign_1 = __importDefault(require("./route/campaign"));
-var target_1 = __importDefault(require("./route/target"));
-var PORT = 3000;
-db_1.client.connect();
-pg_1.types.setTypeParser(pg_1.types.builtins.INT8, function (value) { return parseInt(value); });
-pg_1.types.setTypeParser(1700, function (value) { return parseFloat(value); });
-var app = express_1.default();
-app.use(express_1.default.json());
-app.use(cors_1.default());
-app.use('/main', main_1.default);
-app.use('/dnd', dnd_1.default);
-app.use('/campaign', campaign_1.default);
-app.use('/target', target_1.default);
-app.get('/filterRawDataAll', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var row;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, db_1.client.query("SELECT * FROM public.\"newData\" WHERE \"Prod_Name_Group\" = 'DMTM_OTH' AND \"LIMRA\" = '2021' GROUP BY mth_id ORDER BY mth_id DESC LIMIT 100 ")];
+var express_1 = require("express");
+var targetRouter = express_1.Router();
+var db_1 = require("../db");
+var func_1 = require("../utils/func");
+targetRouter.post('/', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a, product, limra, target, row, err_1;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                _a = req.body, product = _a.product, limra = _a.limra, target = _a.target;
+                _b.label = 1;
             case 1:
-                row = (_a.sent()).rows;
-                row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
-                row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
+                _b.trys.push([1, 3, , 5]);
+                return [4 /*yield*/, db_1.client.query('SELECT * FROM public.target WHERE product = $1 AND limra = $2', [product, limra])];
+            case 2:
+                row = (_b.sent()).rows;
+                return [3 /*break*/, 5];
+            case 3:
+                err_1 = _b.sent();
+                return [4 /*yield*/, db_1.client.query('INSERT INTO public.target(product, limra, target) \
+      VALUES ($1, $2, $3) RETURNING *', [product, limra, target])];
+            case 4:
+                row = (_b.sent()).rows;
+                return [3 /*break*/, 5];
+            case 5:
                 res.json(row);
                 return [2 /*return*/];
         }
     });
 }); });
-app.listen(PORT, function () {
-    console.log("Server is listening on port " + PORT);
-});
+targetRouter.put('/', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a, product, limra, target, row;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                _a = req.body, product = _a.product, limra = _a.limra, target = _a.target;
+                return [4 /*yield*/, db_1.client.query('UPDATE public.target SET target = $3 WHERE product = $1 AND limra = $2 RETURNING *', [product, limra, target])];
+            case 1:
+                row = (_b.sent()).rows;
+                res.json(row);
+                return [2 /*return*/];
+        }
+    });
+}); });
+targetRouter.get('/', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var row, groupByProduct, groupResult;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, db_1.client.query('SELECT * FROM public.target WHERE limra = 2021')];
+            case 1:
+                row = (_a.sent()).rows;
+                groupByProduct = func_1.groupBy('product');
+                groupResult = groupByProduct(row);
+                res.json(groupResult);
+                return [2 /*return*/];
+        }
+    });
+}); });
+exports.default = targetRouter;

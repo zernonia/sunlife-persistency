@@ -13,10 +13,13 @@
       <h2 style="padding-left: 1rem;">{{ product }} | {{ limra }}</h2>
       <apexchart @click="popper = false" @contextmenu.prevent.stop="" type="line" height="450" :options="chartOptions" :series="series" v-if="product"></apexchart>
     </div>
-    <div  style="margin-top: 1rem; display: flex; justify-content: flex-end;">
-      <el-form label-position="right">
-        <el-form-item label="Set Target" style="display: inline-flex;">
+    <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+      <el-form label-position="right" inline>
+        <el-form-item label="Target" style="display: inline-flex;">
           <el-input-number v-model="target" @change="update" :min="0" :max="10"></el-input-number>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="fetchTarget('PUT')">Set</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -51,6 +54,24 @@ export default defineComponent({
     const posY = ref('0px')
     const popper = ref(false)
     const configSelected = ref<any>({})
+
+    const fetchTarget = (action: string) => {
+      fetch('../target', {
+        method: action,
+        mode: "cors",
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          product: product.value,
+          limra: limra.value,
+          target: target.value
+        })
+      }).then( async res => {
+        const response = await res.json()
+        target.value = response[0].target
+      })
+    }
     
     const fetchQuery = () => {
       fetch('../main/ma', {
@@ -64,13 +85,12 @@ export default defineComponent({
           limra: limra.value
         })
       }).then( async res => {
-        target.value = 5
         const response = await res.json()
         data.value = response.collectableDataArray
         collected.value = response.collectedData
         total.value = response.collectedData[0]
         dataOriginal.value = response.collectableDataArray[0]
-        dataTarget.value = response.collectableDataArray[5]
+        dataTarget.value = response.collectableDataArray[target.value]
       })
     }
 
@@ -85,7 +105,10 @@ export default defineComponent({
 
     // Call Data
     onMounted(() => {
-      if(product.value != '') fetchQuery()
+      if(product.value != '') {
+        fetchTarget('POST')
+        fetchQuery()
+      }
     })
 
     // Update Target
@@ -192,6 +215,7 @@ export default defineComponent({
       posY,
       popper,
       fetchQuery,
+      fetchTarget,
       configSelected
     }
   }

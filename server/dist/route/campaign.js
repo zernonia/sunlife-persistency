@@ -35,43 +35,37 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-var express_1 = __importDefault(require("express"));
-var cors_1 = __importDefault(require("cors"));
-var db_1 = require("./db");
-var pg_1 = require("pg");
-var dnd_1 = __importDefault(require("./route/dnd"));
-var main_1 = __importDefault(require("./route/main"));
-var campaign_1 = __importDefault(require("./route/campaign"));
-var target_1 = __importDefault(require("./route/target"));
-var PORT = 3000;
-db_1.client.connect();
-pg_1.types.setTypeParser(pg_1.types.builtins.INT8, function (value) { return parseInt(value); });
-pg_1.types.setTypeParser(1700, function (value) { return parseFloat(value); });
-var app = express_1.default();
-app.use(express_1.default.json());
-app.use(cors_1.default());
-app.use('/main', main_1.default);
-app.use('/dnd', dnd_1.default);
-app.use('/campaign', campaign_1.default);
-app.use('/target', target_1.default);
-app.get('/filterRawDataAll', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var row;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4 /*yield*/, db_1.client.query("SELECT * FROM public.\"newData\" WHERE \"Prod_Name_Group\" = 'DMTM_OTH' AND \"LIMRA\" = '2021' GROUP BY mth_id ORDER BY mth_id DESC LIMIT 100 ")];
+var express_1 = require("express");
+var campaignRouter = express_1.Router();
+var db_1 = require("../db");
+campaignRouter.post('/create', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a, segment, gender, billing, age, payment, date, day, product, limra, row;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                _a = req.body, segment = _a.segment, gender = _a.gender, billing = _a.billing, age = _a.age, payment = _a.payment, date = _a.date, day = _a.day, product = _a.product, limra = _a.limra;
+                return [4 /*yield*/, db_1.client.query('INSERT INTO public.campaign(client_segment, gender, billing_frequency, age, payment_type, date_range, day, product, limra) \
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *', [segment, gender, billing, age, payment, date, day, product, limra])];
             case 1:
-                row = (_a.sent()).rows;
-                row.map(function (a) { return a.mth_id = Date.parse(a.mth_id); });
-                row.sort(function (a, b) { return a['Prod_Name_Group'].localeCompare(b['Prod_Name_Group']) || b.mth_id - a.mth_id; });
+                row = (_b.sent()).rows;
                 res.json(row);
                 return [2 /*return*/];
         }
     });
 }); });
-app.listen(PORT, function () {
-    console.log("Server is listening on port " + PORT);
-});
+campaignRouter.post('/history', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var _a, product, limra, row;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                _a = req.body, product = _a.product, limra = _a.limra;
+                return [4 /*yield*/, db_1.client.query('SELECT * FROM public.campaign WHERE product = $1 AND limra = $2', [product, limra])];
+            case 1:
+                row = (_b.sent()).rows;
+                res.json(row);
+                return [2 /*return*/];
+        }
+    });
+}); });
+exports.default = campaignRouter;

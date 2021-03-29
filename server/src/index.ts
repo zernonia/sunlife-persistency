@@ -4,6 +4,8 @@ import { client } from './db'
 import { types } from 'pg'
 import dndRouter from './route/dnd'
 import mainRouter from './route/main'
+import campaignRouter from './route/campaign'
+import targetRouter from './route/target'
 
 const PORT = 3000
 
@@ -19,6 +21,10 @@ app.use(cors())
 app.use('/main', mainRouter)
 
 app.use('/dnd', dndRouter)
+
+app.use('/campaign', campaignRouter)
+
+app.use('/target', targetRouter)
 
 app.get('/filterRawDataAll', async (req: Request, res: Response) => {   
   const row = (await client.query(`SELECT * FROM public."newData" WHERE "Prod_Name_Group" = 'DMTM_OTH' AND "LIMRA" = '2021' GROUP BY mth_id ORDER BY mth_id DESC LIMIT 100 `)).rows

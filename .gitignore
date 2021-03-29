@@ -4,3 +4,5 @@ server/db/persistency.db
 server/db/persistency.sql
 client/node_modules
 *.lnk
+*.bat
+*.sql
