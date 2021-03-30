@@ -12,6 +12,14 @@
         </template>
       </el-table-column>
       <el-table-column
+        label="Running"
+        width="100"
+      >
+        <template #default="scope">
+          <el-switch v-model="scope.row.running"></el-switch>
+        </template>
+      </el-table-column>
+      <el-table-column
         prop="modified_at"
         label="Date"
         sortable
@@ -22,7 +30,28 @@
       <el-table-column
         prop="id"
         label="ID"
-        width="500">
+        width="180">
+      </el-table-column>
+      <el-table-column
+        label="Open Rate (%)"
+        width="180">
+        <template #default="scope">
+          {{ (scope.row.id * Math.random() * 10).toFixed(2) }}%
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="Bounce Rate (%)"
+        width="180">
+        <template #default="scope">
+          {{ (scope.row.id * Math.random() * 3).toFixed(2) }}%
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="Conserved (%)"
+        width="180">
+        <template #default="scope">
+          {{ (scope.row.id * Math.random() * 10).toFixed(2) }}%
+        </template>
       </el-table-column>
       <el-table-column
       label="Operations">
@@ -155,7 +184,7 @@
         <span class="dialog-footer">
           <el-button v-if="activeStep != 0" @click="activeStep--">Back</el-button>
           <el-button v-if="activeStep != 2" type="primary" @click="activeStep++">Next</el-button>
-          <el-button v-else type="primary" @click="dialogVisible = false">Complete</el-button>
+          <el-button v-else type="primary" @click="dialogVisible = false; fetchCreate()">Complete</el-button>
         </span>
       </template>
     </el-dialog>
@@ -187,7 +216,8 @@ export default defineComponent({
       age:[],
       payment: [],
       date: [],
-      day: []
+      day: [],
+      running: false
     })
     const dialogVisible = ref(false)
     const activeStep = ref(0)
@@ -225,7 +255,8 @@ export default defineComponent({
           date: form.value.date,
           day: form.value.day,
           product: product.value,
-          limra: limra.value
+          limra: limra.value,
+          running: form.value.running
         })
       }).then( async res => {
         const response = await res.json()
@@ -254,7 +285,8 @@ export default defineComponent({
         age: row.age,
         payment: row.payment_type,
         date: row.date_range,
-        day: row.day
+        day: row.day,
+        running: row.running
       }
       dialogVisible.value = true
       console.log(index, row);
@@ -271,7 +303,8 @@ export default defineComponent({
         age:[],
         payment: [],
         date: [],
-        day: []
+        day: [],
+        running: false 
       }
     }
 

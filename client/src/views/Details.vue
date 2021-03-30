@@ -11,7 +11,7 @@
 
     <el-divider></el-divider>
 
-    <selection-d-n-d style="margin-top: 1rem;" :product="routeData.lastDetailRoute" :mob="highlightedMOB" :key="routeData.lastDetailRoute"></selection-d-n-d>
+    <!-- <selection-d-n-d style="margin-top: 1rem;" :product="routeData.lastDetailRoute" :mob="highlightedMOB" :key="routeData.lastDetailRoute"></selection-d-n-d> -->
   </div>
 </template>
 
@@ -20,7 +20,7 @@ import { defineComponent, ref, watch, ComponentPublicInstance, computed, onMount
 import { useRoute } from 'vue-router'
 import { routeData } from '../store/route'
 import newMobTarget from '../components/newMOBTargetSearch.vue'
-import SelectionDND from '../components/SelectionDND.vue'
+// import SelectionDND from '../components/SelectionDND.vue'
 import Campaign from '../components/Campaign.vue'
 
 
@@ -28,7 +28,7 @@ export default defineComponent({
   components: {
     newMobTarget,
     Campaign,
-    SelectionDND
+    // SelectionDND
   },
   setup() {
     const route = useRoute()
