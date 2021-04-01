@@ -66,17 +66,14 @@
 
 <script lang="ts">
 import draggable from 'vuedraggable'
-import { defineComponent, onMounted, ref, toRefs } from 'vue'
+import { defineComponent, onMounted, ref, toRefs, watch } from 'vue'
+import { storeFilter } from '../store/filter'
 
 export default defineComponent({
   components:{
     draggable
   },
   props: {
-    limra: {
-      type: Number,
-      default: 2021
-    },
     product: {
       type: String,
       required: true
@@ -87,7 +84,7 @@ export default defineComponent({
     }
   },
   setup(props) {
-    const { limra, product, mob } = toRefs(props)
+    const { product, mob } = toRefs(props)
 
     const list1 = ref([
       "Client_Segment",
@@ -113,7 +110,7 @@ export default defineComponent({
         body: JSON.stringify({
           list: list1.value,
           product: product.value,
-          limra: limra.value,
+          limra: storeFilter.selectedLIMRA,
           mob: mob.value
         })
       }).then( async res => {
@@ -144,7 +141,7 @@ export default defineComponent({
         },
         body: JSON.stringify({
           product: product.value,
-          limra: limra.value
+          limra: storeFilter.selectedLIMRA
         })
       }).then( async res => {
         const response = await res.json()
@@ -161,7 +158,7 @@ export default defineComponent({
         },
         body: JSON.stringify({
           product: product.value,
-          limra: limra.value,
+          limra: storeFilter.selectedLIMRA,
           priority,
           mob: mobVal
         })
@@ -179,6 +176,10 @@ export default defineComponent({
     } 
 
     onMounted(() => {
+      fetchAction()
+    })
+
+    watch(() => storeFilter.selectedLIMRA, (newVal: number, oldVal: number) => {
       fetchAction()
     })
 

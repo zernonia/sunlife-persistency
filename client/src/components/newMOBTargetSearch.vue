@@ -10,7 +10,7 @@
     </teleport>
 
     <div style="padding: 1rem;" class=" container">
-      <h2 style="padding-left: 1rem;">{{ product }} | {{ limra }}</h2>
+      <h2 style="padding-left: 1rem;">{{ product }} | {{ storeFilter.selectedLIMRA }}</h2>
       <apexchart @click="popper = false" @contextmenu.prevent.stop="" type="line" height="450" :options="chartOptions" :series="series" v-if="product"></apexchart>
     </div>
     <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
@@ -28,20 +28,18 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, toRefs, watch, onMounted } from 'vue'
+import { storeFilter } from '../store/filter'
+
 export default defineComponent({
   emits: ['highlight'],
   props: {
-    limra: {
-      type: Number,
-      default: 2021
-    },
     product: {
       type: String,
       required: true
     }
   },
   setup(props) {
-    const { limra, product } = toRefs(props)
+    const { product } = toRefs(props)
 
     const data = ref([])
     const dataOriginal = ref([])
@@ -64,7 +62,7 @@ export default defineComponent({
         },
         body: JSON.stringify({
           product: product.value,
-          limra: limra.value,
+          limra: storeFilter.selectedLIMRA,
           target: target.value
         })
       }).then( async res => {
@@ -82,7 +80,7 @@ export default defineComponent({
         },
         body: JSON.stringify({
           product: product.value,
-          limra: limra.value
+          limra: storeFilter.selectedLIMRA
         })
       }).then( async res => {
         const response = await res.json()
@@ -109,6 +107,11 @@ export default defineComponent({
         fetchTarget('POST')
         fetchQuery()
       }
+    })
+
+    watch(() => storeFilter.selectedLIMRA, (newVal: number, oldVal: number) => {
+      fetchTarget('POST')
+      fetchQuery()
     })
 
     // Update Target
@@ -141,15 +144,15 @@ export default defineComponent({
     const series = computed(() => {
       return [
       {
+        name: 'Target',
+        type: 'line',
+        data: limraTarget.value
+      },
+      {
         name: 'Static',
         type: 'area',
         data: limraOriginal.value
       },
-      {
-        name: 'Target',
-        type: 'line',
-        data: limraTarget.value
-      }
       ]
     })
 
@@ -170,7 +173,7 @@ export default defineComponent({
             return Math.round(val * 1000) / 10 + '%'
           }
         },
-        colors: ['#cff1ff', '#1876d6'],
+        colors: ['#1876d6','#06c0ff'],
         fill: {
           type: 'solid'
         },
@@ -195,7 +198,7 @@ export default defineComponent({
         tooltip: {
           y: {
             formatter: function (val: any, opts: any) {
-              if(opts.seriesIndex == 0) {
+              if(opts.seriesIndex == 1) {
                 return Math.round(val * 1000) / 10 + '% | Collectable: ' + Math.round(dataOriginal.value[opts.dataPointIndex] - collected.value[opts.dataPointIndex])
               } else {
                 return Math.round(val * 1000) / 10 + '% | Collectable: ' + Math.round(dataTarget.value[opts.dataPointIndex] - collected.value[opts.dataPointIndex]) + `<span style="color: orange; font-weight: 600;"> (+${ Math.round(dataTarget.value[opts.dataPointIndex] - collected.value[opts.dataPointIndex]) - Math.round(dataOriginal.value[opts.dataPointIndex] - collected.value[opts.dataPointIndex]) })</span>`              
@@ -216,7 +219,8 @@ export default defineComponent({
       popper,
       fetchQuery,
       fetchTarget,
-      configSelected
+      configSelected,
+      storeFilter
     }
   }
 })

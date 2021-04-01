@@ -153,40 +153,35 @@ function newProcessData(row, MA, single) {
     });
     return { collectedData: collectedData, collectableDataArray: collectableDataArray };
 }
-function calculateOverallLIMRA(row, MA) {
-    var collectedData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    var collectableData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    Object.keys(row).forEach(function (item, index) {
-        row[item].forEach(function (subItem, index) {
-            var refMaxData = 0;
-            var refIndex = 0;
-            var maIndex = MA.findIndex(function (x) { return x.Prod_Name_Group == subItem.Prod_Name_Group; });
-            var ma = MA[maIndex];
-            for (var i = 1; i <= 13; i++) {
-                collectedData[i - 1] += subItem["sum_MOB_" + i];
-                if (subItem["sum_MOB_" + i] == 0) {
-                    if (refMaxData == 0) {
-                        refMaxData = subItem["sum_MOB_" + (i - 1)];
-                        refIndex = i;
-                    }
-                    collectableData[i - 1] += (Math.round(refMaxData * multiply(ma, refIndex, i)));
-                }
-            }
-        });
+function calculateOverallLIMRA(row, target) {
+    var total = 0;
+    var limra = 0;
+    var limraTarget = 0;
+    Object.keys(row).forEach(function (prod) {
+        total += row[prod]['collectableDataArray'][target[prod][0]['target']][0];
+        limra += row[prod]['collectableDataArray'][0][12];
+        limraTarget += row[prod]['collectableDataArray'][target[prod][0]['target']][12];
     });
-    var initialValue = Math.round((collectedData[collectedData.length - 1] + collectableData[collectedData.length - 1]) / collectedData[0] * 1000) / 10;
-    return initialValue;
+    return {
+        actual: limra / total * 100,
+        target: limraTarget / total * 100
+    };
 }
-var querySum = "SELECT TO_DATE(mth_id, 'DDMonYYYY') as mth_id, \"Prod_Name_Group\",  count(\"MOB_1\") as total , sum(\"MOB_1\") as \"sum_MOB_1\", sum(\"MOB_2\") as \"sum_MOB_2\", sum(\"MOB_3\") as \"sum_MOB_3\", sum(\"MOB_4\") as \"sum_MOB_4\",   sum(\"MOB_5\") as \"sum_MOB_5\", sum(\"MOB_6\") as \"sum_MOB_6\", sum(\"MOB_7\") as \"sum_MOB_7\", sum(\"MOB_8\") as \"sum_MOB_8\",    sum(\"MOB_9\") as \"sum_MOB_9\", sum(\"MOB_10\") as \"sum_MOB_10\", sum(\"MOB_11\") as \"sum_MOB_11\", sum(\"MOB_12\") as \"sum_MOB_12\", sum(\"MOB_13\") as \"sum_MOB_13\",   sum(\"FYAP\") as \"sum_AFYP\"\n  ";
-mainRouter.get('/maAll', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var MA, row, groupByProduct, groupResult, groupMAResult, temp;
+var querySum = "SELECT mth_id, \"Prod_Name_Group\",  count(\"MOB_1\") as total , sum(\"MOB_1\") as \"sum_MOB_1\", sum(\"MOB_2\") as \"sum_MOB_2\", sum(\"MOB_3\") as \"sum_MOB_3\", sum(\"MOB_4\") as \"sum_MOB_4\",   sum(\"MOB_5\") as \"sum_MOB_5\", sum(\"MOB_6\") as \"sum_MOB_6\", sum(\"MOB_7\") as \"sum_MOB_7\", sum(\"MOB_8\") as \"sum_MOB_8\",    sum(\"MOB_9\") as \"sum_MOB_9\", sum(\"MOB_10\") as \"sum_MOB_10\", sum(\"MOB_11\") as \"sum_MOB_11\", sum(\"MOB_12\") as \"sum_MOB_12\", sum(\"MOB_13\") as \"sum_MOB_13\",   sum(\"FYAP\") as \"sum_AFYP\"\n  ";
+mainRouter.get('/maAll/:limra', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var limra, MA, target, row, groupByProduct, groupResult, groupMAResult, temp, groupByProduct2;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, db_1.client.query('SELECT * FROM public."newMA"')];
+            case 0:
+                limra = req.params.limra;
+                return [4 /*yield*/, db_1.client.query('SELECT * FROM public."newMA"')];
             case 1:
                 MA = (_a.sent()).rows;
-                return [4 /*yield*/, db_1.client.query(querySum + "   FROM public.\"newData\"   WHERE \"LIMRA\" = 2021   GROUP BY mth_id, \"Prod_Name_Group\"   ORDER BY \"Prod_Name_Group\", mth_id DESC ")];
+                return [4 /*yield*/, db_1.client.query('SELECT * FROM public.target')];
             case 2:
+                target = (_a.sent()).rows;
+                return [4 /*yield*/, db_1.client.query(querySum + "   FROM public.\"newData\"   WHERE \"LIMRA\" = $1   GROUP BY mth_id, \"Prod_Name_Group\"   ORDER BY \"Prod_Name_Group\", mth_id DESC ", [limra])];
+            case 3:
                 row = (_a.sent()).rows;
                 groupByProduct = func_1.groupBy("Prod_Name_Group");
                 groupResult = groupByProduct(row);
@@ -195,7 +190,8 @@ mainRouter.get('/maAll', function (req, res) { return __awaiter(void 0, void 0, 
                 Object.keys(groupResult).forEach(function (item) {
                     temp[item] = newProcessData(groupResult[item], groupMAResult[item]);
                 });
-                temp['Overall'] = calculateOverallLIMRA(groupResult, MA);
+                groupByProduct2 = func_1.groupBy('product');
+                temp['Overall'] = calculateOverallLIMRA(temp, groupByProduct2(target));
                 res.json(temp);
                 return [2 /*return*/];
         }

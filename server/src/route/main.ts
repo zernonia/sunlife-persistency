@@ -122,47 +122,38 @@ function newProcessData(row: any[], MA: any[], single = false) {
   
 }
 
-function calculateOverallLIMRA(row: any, MA: any[]) {
-  let collectedData: number[] = [0,0,0,0,0,0,0,0,0,0,0,0,0]
-  let collectableData: number[] = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+function calculateOverallLIMRA(row: any, target: any) {
+  let total: number = 0
+  let limra: number = 0
+  let limraTarget: number = 0
 
-  Object.keys(row).forEach((item: any, index: number) => {
-    row[item].forEach((subItem: any, index: number) => {
-      let refMaxData: number = 0
-      let refIndex: number = 0
-      const maIndex = MA.findIndex(x => x.Prod_Name_Group == subItem.Prod_Name_Group)
-      const ma = MA[maIndex]
-      for(let i = 1; i <= 13; i++) {
-        collectedData[i - 1] += subItem[`sum_MOB_${i}`]
-        if(subItem[`sum_MOB_${i}`] == 0) {
-          if(refMaxData == 0) {
-            refMaxData = subItem[`sum_MOB_${i - 1}`] 
-            refIndex = i
-          }
-          collectableData[i - 1] += (Math.round(refMaxData * multiply(ma, refIndex, i)))
-        }
-      }
-    })
+  Object.keys(row).forEach((prod: any) => {
+    total += row[prod]['collectableDataArray'][target[prod][0]['target']][0]
+    limra += row[prod]['collectableDataArray'][0][12] 
+    limraTarget += row[prod]['collectableDataArray'][target[prod][0]['target']][12]
   })
-  
-  let initialValue = Math.round((collectedData[collectedData.length - 1] + collectableData[collectedData.length - 1]) / collectedData[0] * 1000 ) / 10
-  return initialValue
+
+  return {
+    actual: limra / total * 100,
+    target: limraTarget / total * 100
+  }
 }
 
-const querySum = `SELECT TO_DATE(mth_id, 'DDMonYYYY') as mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
+const querySum = `SELECT mth_id, "Prod_Name_Group",  count("MOB_1") as total , sum("MOB_1") as "sum_MOB_1", sum("MOB_2") as "sum_MOB_2", sum("MOB_3") as "sum_MOB_3", sum("MOB_4") as "sum_MOB_4", \
   sum("MOB_5") as "sum_MOB_5", sum("MOB_6") as "sum_MOB_6", sum("MOB_7") as "sum_MOB_7", sum("MOB_8") as "sum_MOB_8",  \
   sum("MOB_9") as "sum_MOB_9", sum("MOB_10") as "sum_MOB_10", sum("MOB_11") as "sum_MOB_11", sum("MOB_12") as "sum_MOB_12", sum("MOB_13") as "sum_MOB_13", \
   sum("FYAP") as "sum_AFYP"
   `
 
-mainRouter.get('/maAll', async (req: Request, res: Response) => { 
-  // client.query('SELECT * FROM public."newMA"')
+mainRouter.get('/maAll/:limra', async (req: Request, res: Response) => {
+  const { limra } = req.params
   const MA = (await client.query('SELECT * FROM public."newMA"')).rows
+  const target = (await client.query('SELECT * FROM public.target')).rows
   const row = (await client.query(`${querySum} \
   FROM public."newData" \
-  WHERE "LIMRA" = 2021 \
+  WHERE "LIMRA" = $1 \
   GROUP BY mth_id, "Prod_Name_Group" \
-  ORDER BY "Prod_Name_Group", mth_id DESC `)).rows
+  ORDER BY "Prod_Name_Group", mth_id DESC `, [limra])).rows
 
   const groupByProduct = groupBy("Prod_Name_Group")
   const groupResult = groupByProduct(row)
@@ -172,7 +163,11 @@ mainRouter.get('/maAll', async (req: Request, res: Response) => {
   Object.keys(groupResult).forEach((item: any) => {
     temp[item] = newProcessData(groupResult[item], groupMAResult[item])
   })
-  temp['Overall'] = calculateOverallLIMRA(groupResult, MA)
+
+  const groupByProduct2 = groupBy('product')
+  temp['Overall'] = calculateOverallLIMRA(temp, groupByProduct2(target))
+
+  
   res.json(temp)
 })
 
@@ -192,7 +187,6 @@ mainRouter.get('/ma', async (req: Request, res: Response) => {
   Object.keys(groupResult).forEach((item: any) => {
     temp[item] = newProcessData(groupResult[item], groupMAResult[item])
   })
-
   res.json(temp[Object.keys(groupResult)[0]])
 })
 

@@ -8,7 +8,23 @@
         </svg>
       </div>
     </template>
-    <apexchart :options="chartOptions" :series="series"></apexchart>
+    <div style="position: relative;">
+      <apexchart :options="chartOptions" :series="series"></apexchart>
+      <div class="small-card">
+        <div>
+          <div style="height: 8px; width: 8px; border-radius: 100%; background-color: #1876d6; margin-right: 5px;"></div>
+          <span>{{ Math.round(limraTarget[12]*1000)/10 || 0 }}%</span>
+        </div>
+        <div>
+          <div style="height: 8px; width: 8px; border-radius: 100%; background-color: #06c0ff; margin-right: 5px;"></div>
+          <span>{{ Math.round(limraOriginal[12]*1000)/10 || 0 }}%</span>
+        </div>
+        <div>
+          <i class="el-icon-caret-top" style="padding: 0;color: #29b30b; margin-right: 3px; transform: scale(1.2); margin-left: -2px;"></i>
+          <span>3.0%</span>
+        </div>
+      </div>
+    </div>
   </el-card>
 </template>
 
@@ -63,15 +79,15 @@ export default defineComponent({
     const series = computed(() => {
       return [
       {
+        name: 'Target',
+        type: 'line',
+        data: limraTarget.value
+      },
+      {
         name: 'Static',
         type: 'area',
         data: limraOriginal.value
       },
-      {
-        name: 'Target',
-        type: 'line',
-        data: limraTarget.value
-      }
       ]
     })
 
@@ -90,7 +106,7 @@ export default defineComponent({
           curve: 'smooth',
           dashArray: [0, 3]
         },
-        colors: ['#cff1ff', '#1876d6'],
+        colors: ['#1876d6','#06c0ff'],
         fill: {
           type: 'solid'
         },
@@ -109,7 +125,9 @@ export default defineComponent({
             enabled: false
           },
           x: {
-            show: false
+            formatter: function (val: any) {
+              return `MOB ${ val }`
+            }
           },
           y: {
             title: {
@@ -130,12 +148,30 @@ export default defineComponent({
 
     return {
       series,
-      chartOptions
+      chartOptions,
+      limraOriginal,
+      limraTarget
     }
   }
 })
 </script>
 
 <style>
-
+.small-card {
+  font-size: 12px;
+  position: absolute; 
+  top: 0; 
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffffdb;
+  padding: 0.5rem;
+  border-radius: 5px;
+}
+.small-card > div {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 2px 0;
+}
 </style>

@@ -41,26 +41,21 @@ var targetRouter = express_1.Router();
 var db_1 = require("../db");
 var func_1 = require("../utils/func");
 targetRouter.post('/', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, product, limra, target, row, err_1;
+    var _a, product, limra, target, row;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
                 _a = req.body, product = _a.product, limra = _a.limra, target = _a.target;
-                _b.label = 1;
-            case 1:
-                _b.trys.push([1, 3, , 5]);
                 return [4 /*yield*/, db_1.client.query('SELECT * FROM public.target WHERE product = $1 AND limra = $2', [product, limra])];
-            case 2:
+            case 1:
                 row = (_b.sent()).rows;
-                return [3 /*break*/, 5];
-            case 3:
-                err_1 = _b.sent();
+                if (!(row.length == 0)) return [3 /*break*/, 3];
                 return [4 /*yield*/, db_1.client.query('INSERT INTO public.target(product, limra, target) \
       VALUES ($1, $2, $3) RETURNING *', [product, limra, target])];
-            case 4:
+            case 2:
                 row = (_b.sent()).rows;
-                return [3 /*break*/, 5];
-            case 5:
+                _b.label = 3;
+            case 3:
                 res.json(row);
                 return [2 /*return*/];
         }
@@ -80,11 +75,13 @@ targetRouter.put('/', function (req, res) { return __awaiter(void 0, void 0, voi
         }
     });
 }); });
-targetRouter.get('/', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var row, groupByProduct, groupResult;
+targetRouter.get('/:limra', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    var limra, row, groupByProduct, groupResult;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, db_1.client.query('SELECT * FROM public.target WHERE limra = 2021')];
+            case 0:
+                limra = req.params.limra;
+                return [4 /*yield*/, db_1.client.query('SELECT * FROM public.target WHERE limra = $1', [limra])];
             case 1:
                 row = (_a.sent()).rows;
                 groupByProduct = func_1.groupBy('product');

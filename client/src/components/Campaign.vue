@@ -194,20 +194,17 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, ref, toRefs, watch } from 'vue'
+import { storeFilter } from '../store/filter'
 
 export default defineComponent({
   props: {
-    limra: {
-      type: String,
-      default: '2021'
-    },
     product: {
       type: String,
       required: true
     },
   },
   setup(props) {
-    const { limra, product } = toRefs(props)
+    const { product } = toRefs(props)
     const tableData = ref([])
     const form = ref({
       segment: [],
@@ -231,7 +228,7 @@ export default defineComponent({
         },
         body: JSON.stringify({
           product: product.value,
-          limra: limra.value
+          limra: storeFilter.selectedLIMRA
         })
       }).then( async res => {
         const response = await res.json()
@@ -255,7 +252,7 @@ export default defineComponent({
           date: form.value.date,
           day: form.value.day,
           product: product.value,
-          limra: limra.value,
+          limra: storeFilter.selectedLIMRA,
           running: form.value.running
         })
       }).then( async res => {
@@ -265,6 +262,10 @@ export default defineComponent({
     }
 
     onMounted(fetchHistory)
+
+    watch(() => storeFilter.selectedLIMRA, (newVal: number, oldVal: number) => {
+      fetchHistory()
+    })
 
     watch(dialogVisible, () => {
       setTimeout(() => {
@@ -350,6 +351,7 @@ export default defineComponent({
     const textarea = ref('')
 
     return {
+      storeFilter,
       form,
       tableData,
       dialogVisible,

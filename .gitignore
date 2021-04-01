@@ -6,3 +6,4 @@ client/node_modules
 *.lnk
 *.bat
 *.sql
+*.sas7bdat

@@ -1,19 +1,22 @@
 <template>
   <div style="display: flex; width: 100vw">
-    <el-menu :default-active="activeVal" style="height: 100vh;" :collapse="true">
-      <el-menu-item index="1" @click="$router.push('/')">
-        <i class="el-icon-menu"></i>
-        <!-- <template #title>Navigator Two</template> -->
-      </el-menu-item>
-      <el-menu-item index="2"  @click="$router.push(`/details/${ routeData.lastDetailRoute }`)">
-        <i class="el-icon-document"></i>
-        <!-- <template #title>Navigator Three</template> -->
-      </el-menu-item>
-      <el-menu-item index="3">
-        <i class="el-icon-setting"></i>
-        <!-- <template #title>Navigator Four</template> -->
-      </el-menu-item>
-    </el-menu>
+    <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh; background-color: white; align-items: center;">
+      <el-menu :default-active="activeVal" style="" :collapse="true">
+        <el-menu-item index="1" @click="$router.push({ name: 'Home'})">
+          <i class="el-icon-menu"></i>
+          <!-- <template #title>Navigator Two</template> -->
+        </el-menu-item>
+        <el-menu-item index="2"  @click="$router.push(`/details/${ routeData.lastDetailRoute }`)">
+          <i class="el-icon-document"></i>
+          <!-- <template #title>Navigator Three</template> -->
+        </el-menu-item>
+        <el-menu-item index="3">
+          <i class="el-icon-setting"></i>
+          <!-- <template #title>Navigator Four</template> -->
+        </el-menu-item>
+      </el-menu>
+      <el-avatar style="margin-bottom: 1rem; cursor: pointer; background-color: rgb(112, 214, 255);"> user </el-avatar>
+    </div>
       <div style="display: flex; justify-content: center; height: 100vh; overflow-y: scroll; padding: 0rem 1.5rem; width: 100%;">
         <router-view class="main-container" v-slot="{ Component }">
           <keep-alive>

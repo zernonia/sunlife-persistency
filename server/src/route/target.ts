@@ -6,9 +6,8 @@ import { groupBy } from '../utils/func'
 targetRouter.post('/', async (req: Request, res: Response) => {
   const { product, limra, target } = req.body
   let row
-  try {
-    row = (await client.query('SELECT * FROM public.target WHERE product = $1 AND limra = $2', [ product, limra ])).rows
-  } catch(err) {
+  row = (await client.query('SELECT * FROM public.target WHERE product = $1 AND limra = $2', [ product, limra ])).rows
+  if(row.length == 0) {
     row = (await client.query('INSERT INTO public.target(product, limra, target) \
       VALUES ($1, $2, $3) RETURNING *', [ product, limra, target ])).rows
     }
@@ -21,8 +20,9 @@ targetRouter.put('/', async (req: Request, res: Response) => {
   res.json(row)
 })
 
-targetRouter.get('/', async (req: Request, res: Response) => {
-  const row = (await client.query('SELECT * FROM public.target WHERE limra = 2021')).rows
+targetRouter.get('/:limra', async (req: Request, res: Response) => {
+  const { limra } = req.params
+  const row = (await client.query('SELECT * FROM public.target WHERE limra = $1', [limra])).rows
   const groupByProduct = groupBy('product')
   const groupResult = groupByProduct(row)
   res.json(groupResult)

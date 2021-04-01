@@ -1,12 +1,21 @@
 <template>
   <div>
-    <h1>Persistency Dashboard</h1>
-    <h2>LIMRA 2021</h2>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; align-items: center">
+      <h1>Persistency Dashboard</h1>
+      <el-select v-model="storeFilter.selectedLIMRA" placeholder="Select" style="width: 150px;">
+        <el-option
+          v-for="item in storeFilter.selectionLIMRA"
+          :key="item"
+          :label="item"
+          :value="item">
+        </el-option>
+      </el-select>
+    </div>
     
     <div style="display: grid; grid-template-columns: repeat(3, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
-      <card :title="'Overall LIMRA Projected'" :data="overall" />
-      <card :title="'Target LIMRA 2021'" :data="overall + 1" />
-      <card :title="'Target LIMRA 2022'" :data="overall + 2" />
+      <card :title="'Projected LIMRA 2021'" :data="overall.actual" />
+      <card :title="'Target LIMRA 2021'" :data="overall.target" />
+      <card :title="'Target LIMRA 2022'" :data="overall.target + 2" />
     </div>
     
     <section id="in_branch">
@@ -40,10 +49,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, watch } from 'vue';
 // import pivotTable from '../components/PivotTable.vue'
 import Card from '../components/Card.vue'
 import CardDashboard from '../components/CardDashboard.vue'
+import { storeFilter } from '../store/filter'
 
 export default defineComponent({
   name: 'Home',
@@ -58,7 +68,7 @@ export default defineComponent({
     const overall = ref(0)
 
     const fetchAll = () => {
-      fetch('./main/maAll', {
+      fetch(`./main/maAll/${ storeFilter.selectedLIMRA }`, {
         mode: "cors",
       }).then( async res => {
         const response = await res.json()
@@ -68,15 +78,18 @@ export default defineComponent({
     }
     
     const fetchTarget = () => {
-      fetch('./target', {
+      fetch(`./target/${ storeFilter.selectedLIMRA }`, {
         mode: "cors",
       }).then( async res => {
         const response = await res.json()
-        console.log(response);
-        
         target.value = response
       })
     }
+
+    watch(() => storeFilter.selectedLIMRA, (newVal: number, oldVal: number) => {
+      fetchAll(),
+      fetchTarget()
+    })
 
     fetchAll()
     fetchTarget()
@@ -84,7 +97,8 @@ export default defineComponent({
     return {
       allProductData,
       target,
-      overall
+      overall,
+      storeFilter
     }
 
   }

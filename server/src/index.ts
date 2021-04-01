@@ -6,6 +6,10 @@ import dndRouter from './route/dnd'
 import mainRouter from './route/main'
 import campaignRouter from './route/campaign'
 import targetRouter from './route/target'
+import loginRouter from './route/login'
+import { verifyToken } from './utils/func'
+
+import cookieParser from 'cookie-parser'
 
 const PORT = 3000
 
@@ -16,7 +20,11 @@ types.setTypeParser(1700, (value: string) => parseFloat(value))
 
 const app = express()
 app.use(express.json())
+app.use(cookieParser())
 app.use(cors())
+app.use(verifyToken)
+
+app.use('/login', loginRouter)
 
 app.use('/main', mainRouter)
 

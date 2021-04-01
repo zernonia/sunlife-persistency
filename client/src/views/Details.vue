@@ -1,6 +1,16 @@
 <template>
   <div>
-    <h1 id="page-title">Persistency Calculator</h1>
+    <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; align-items: center">
+      <h1 id="page-title">Persistency Calculator</h1>
+      <el-select v-model="storeFilter.selectedLIMRA" placeholder="Select" style="width: 150px;">
+        <el-option
+          v-for="item in storeFilter.selectionLIMRA"
+          :key="item"
+          :label="item"
+          :value="item">
+        </el-option>
+      </el-select>
+    </div>
     <el-page-header @back="$router.push('/')" content="Overall" />
 
     <new-mob-target ref="mobChart" @highlight="highlightData" style="margin-top: 1rem;" :product="routeData.lastDetailRoute" :key="routeData.lastDetailRoute" />
@@ -11,7 +21,7 @@
 
     <el-divider></el-divider>
 
-    <!-- <selection-d-n-d style="margin-top: 1rem;" :product="routeData.lastDetailRoute" :mob="highlightedMOB" :key="routeData.lastDetailRoute"></selection-d-n-d> -->
+    <selection-d-n-d style="margin-top: 1rem;" :product="routeData.lastDetailRoute" :mob="highlightedMOB" :key="routeData.lastDetailRoute"></selection-d-n-d>
   </div>
 </template>
 
@@ -20,15 +30,15 @@ import { defineComponent, ref, watch, ComponentPublicInstance, computed, onMount
 import { useRoute } from 'vue-router'
 import { routeData } from '../store/route'
 import newMobTarget from '../components/newMOBTargetSearch.vue'
-// import SelectionDND from '../components/SelectionDND.vue'
+import SelectionDND from '../components/SelectionDND.vue'
 import Campaign from '../components/Campaign.vue'
-
+import { storeFilter } from '../store/filter'
 
 export default defineComponent({
   components: {
     newMobTarget,
     Campaign,
-    // SelectionDND
+    SelectionDND
   },
   setup() {
     const route = useRoute()
@@ -82,7 +92,8 @@ export default defineComponent({
       mobChart,
       highlightData,
       routeData,
-      highlightedMOB
+      highlightedMOB,
+      storeFilter
     }
   }
 })

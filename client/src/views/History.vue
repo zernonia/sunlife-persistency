@@ -56,7 +56,7 @@ export default defineComponent({
 
     const updateStaffDesignation = () => {
       storeFilter.selectedProduct = ''
-      storeFilter.selectedLIMRA = ''
+      storeFilter.selectedLIMRA = 0
     }
 
     const search = () => {
